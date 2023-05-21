@@ -4,6 +4,7 @@ import re
 import requests
 import string
 import datetime
+import json
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from urllib.parse import unquote
@@ -22,7 +23,7 @@ def sanitize_string(s):
     # Limit the maximum length of the string to 255 characters
     s = s[:255]
 
-    return s  # Add this line to return the sanitized string
+    return s
 
 
 def download_file(url, filename, folder):
@@ -61,14 +62,19 @@ def download_media(url, artist_folder, total_posts):
     os.makedirs(folder, exist_ok=True)  # Ensure the folder is created before anything else
 
     media_tags = soup.select('div.post__files > div.post__thumbnail > a.fileThumb')
+    num_media = len(media_tags)
+    counter = 1  # Initialize the counter
+
     for index, tag in enumerate(media_tags, start=1):
         media_url = tag.get('href')
         media_name = tag.get('download') or media_url.split('/')[-1].split('?')[0]
         media_name = sanitize_string(unquote(media_name))
         try:
-            percentage = int((index / total_posts) * 100)
-            print(f'Downloading {media_name} ({index} of {total_posts} -- {percentage}%)')
+            percentage = int((counter / total_posts) * 100)  # Calculate the percentage based on the counter
+            if counter == 1:
+                print(f'Downloading from post {index} ({percentage}%)')
             download_file(media_url, media_name, folder)
+            counter += 1  # Increase the counter after a successful download
         except Exception as e:
             print(f'Error occurred while downloading {media_name}: {str(e)}')
             write_error_to_file(folder, media_name, url)
@@ -102,6 +108,7 @@ def download_media(url, artist_folder, total_posts):
             f.write(content_text)
 
 
+
 def write_error_to_file(folder, filename, url):
     error_filename = "scraping_errors.txt"
     error_message = f"[{datetime.datetime.now().strftime('%d-%m-%Y %H:%M')}] Error occurred while scraping: {filename} from {url}\n"
@@ -110,12 +117,24 @@ def write_error_to_file(folder, filename, url):
 
 
 def write_latest_downloaded_post(artist_page, post_page):
-    latest_downloaded_posts_file = "latest_downloaded_posts.txt"
+    latest_downloaded_posts_file = "latest_downloaded_posts.json"
     artist_name = get_artist_name(artist_page)
     timestamp = get_post_timestamp(post_page)
     if artist_name and timestamp:
-        with open(latest_downloaded_posts_file, 'a', encoding='utf-8') as f:
-            f.write(f"{artist_name},{timestamp}\n")
+        # Try to read existing entries
+        try:
+            with open(latest_downloaded_posts_file, 'r', encoding='utf-8') as f:
+                entries = json.load(f)
+        except FileNotFoundError:
+            entries = {}
+
+        # Only update if the new post is newer
+        if artist_name not in entries or timestamp > entries[artist_name]:
+            entries[artist_name] = timestamp
+
+        # Write the updated entries back to the file
+        with open(latest_downloaded_posts_file, 'w', encoding='utf-8') as f:
+            json.dump(entries, f, ensure_ascii=False, indent=4)
 
 
 def get_artist_name(artist_page):
@@ -156,17 +175,14 @@ def get_total_posts_count(soup):
     return None
 
 
-def get_latest_downloaded_post_count(artist_name):
-    latest_downloaded_posts_file = "latest_downloaded_posts.txt"
-    with open(latest_downloaded_posts_file, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-        for line in reversed(lines):
-            line = line.strip()
-            if line.startswith(artist_name):
-                post_count_match = re.search(r'\d+$', line)
-                if post_count_match:
-                    return int(post_count_match.group())
-    return 0
+def get_latest_downloaded_post_timestamp(artist_name):
+    latest_downloaded_posts_file = "latest_downloaded_posts.json"
+    try:
+        with open(latest_downloaded_posts_file, 'r', encoding='utf-8') as f:
+            entries = json.load(f)
+        return entries.get(artist_name)
+    except FileNotFoundError:
+        return None
 
 
 def clear_console():
@@ -179,7 +195,7 @@ def update_latest_downloaded_post_count(artist_name, downloaded_post_count):
         f.write(f"{artist_name},{downloaded_post_count}\n")
 
 
-def scrape_artist_page(artist_page):
+def scrape_artist_page(artist_page, latest_downloaded_post_timestamp):
     print(f'Scraping artist page {artist_page}')
     response = requests.get(artist_page)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -194,15 +210,16 @@ def scrape_artist_page(artist_page):
 
     post_pages = [urljoin(artist_page, tag.get('href')) for tag in soup.select('article.post-card > a, article.post-card--preview > a')]
 
-    latest_downloaded_post_count = get_latest_downloaded_post_count(artist_name)
-    
     total_posts_count = len(post_pages)  # Simply use the length of post_pages
 
     if total_posts_count == 0:
         print('No posts found for this artist. Skipping artist page.')
         return
 
-    new_posts_count = total_posts_count - latest_downloaded_post_count
+    # Only download posts that are newer than the latest downloaded post
+    new_post_pages = [page for page in post_pages if latest_downloaded_post_timestamp is None or get_post_timestamp(page) > latest_downloaded_post_timestamp]
+
+    new_posts_count = len(new_post_pages)
 
     print(f'{new_posts_count} new posts will be downloaded. Proceed? (Y/N): ')
     user_input = input().strip().lower()
@@ -212,7 +229,7 @@ def scrape_artist_page(artist_page):
         return
 
     downloaded_post_count = 0  # Add a counter for downloaded posts
-    for i, post_page in enumerate(post_pages):
+    for i, post_page in enumerate(new_post_pages):
         if i > 0:
             clear_console()  # Clear console after the first post
         try:
@@ -223,25 +240,25 @@ def scrape_artist_page(artist_page):
             print(f'Error occurred while scraping post {post_page}: {str(e)}')
             write_error_to_file(os.path.join("Artists", artist_name), post_page)
 
-    # Update the total downloaded post count in the file after scraping all posts
     update_latest_downloaded_post_count(artist_name, downloaded_post_count)
-
 
 
 def scrape_website(base_url):
     print(f'Starting to scrape from {base_url}')
     # if base_url is an artist page, directly scrape this page
     if 'user' in base_url:
-        scrape_artist_page(base_url)
+        latest_downloaded_post_timestamp = get_latest_downloaded_post_timestamp(get_artist_name(base_url))
+        scrape_artist_page(base_url, latest_downloaded_post_timestamp)
     else:
         response = requests.get(base_url)
         soup = BeautifulSoup(response.text, 'html.parser')
         # You might have to adjust this depending on how to find artist pages
         artist_pages = [urljoin(base_url, tag.get('href')) for tag in soup.select('div.artist-card > a')]
         for artist_page in artist_pages:
-            scrape_artist_page(artist_page)
+            latest_downloaded_post_timestamp = get_latest_downloaded_post_timestamp(get_artist_name(artist_page))
+            scrape_artist_page(artist_page, latest_downloaded_post_timestamp)
     print('Finished!')
 
 
 # To run
-scrape_website('https://kemono.party/fanbox/user/41738951')
+scrape_website('https://kemono.party/patreon/user/42881815')
