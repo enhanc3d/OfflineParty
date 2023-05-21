@@ -56,6 +56,7 @@ def download_media(url, artist_folder, total_posts):
 
     post_title = sanitize_string(soup.select_one('h1.post__title > span').get_text(strip=True))
     post_date = soup.select_one('div.post__published > time').get('datetime').split()[0]
+
     folder = os.path.join("Artists", artist_folder, f'{post_date}_{post_title}')
     os.makedirs(folder, exist_ok=True)  # Ensure the folder is created before anything else
 
