@@ -193,7 +193,12 @@ def scrape_artist_page(artist_page: str):
     new_post_urls = []
     for url in post_urls:
         # Extract the post ID from the URL
-        post_id = int(re.search(r'(\d+)$', url).group(1))
+        post_id_match = re.search(r'(\d+)$', url)
+        if post_id_match is not None:
+            post_id = int(post_id_match.group(1))
+        else:
+            print(f'No valid post ID found in URL {url}. Skipping this URL.')
+            continue
 
         # If the post is newer than the latest saved post, fetch its media
         if not latest_post_id or post_id > latest_post_id:
@@ -231,14 +236,12 @@ def scrape_artist_page(artist_page: str):
             post_directory = os.path.join("Artists", artist_name, f'{post_date}_{post_title}')
 
             # Extract the post ID from the URL
-            # Extract the post ID from the URL
-            post_id = int(re.search(r'(\d+)$', post_url))
-            if post_id is not None:
-                post_id = post_id.group(1)
+            post_id_match = re.search(r'(\d+)$', post_url)
+            if post_id_match is not None:
+                post_id = int(post_id_match.group(1))
             else:
                 print(f'No valid post ID found in URL {post_url}. Skipping this URL.')
                 continue
-
 
             if first_post:
                 # Save the latest post data
