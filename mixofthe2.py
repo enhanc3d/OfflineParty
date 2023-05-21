@@ -40,9 +40,9 @@ def get_artist_info(soup: BeautifulSoup, artist_page: str) -> dict:
     def get_artist_name(artist_page):
         response = requests.get(artist_page)
         soup = BeautifulSoup(response.text, 'html.parser')
-        artist_name = soup.select_one('span[itemprop="name"]')
-        if artist_name:
-            return sanitize_filename(artist_name.get_text(strip=True))
+        artist_name_meta = soup.select_one('meta[name="id"]')
+        if artist_name_meta and 'content' in artist_name_meta.attrs:
+            return sanitize_filename(artist_name_meta['content'])
         return None
 
     artist_name = get_artist_name(artist_page)
@@ -137,8 +137,8 @@ def fetch_post_media(url: str, artist_folder: str):
 
 
 # Function to save latest post data to a JSON file
-def save_latest_post_data(artist: str, id: int, date: str, directory: str):
-    data = {'post_id': id, 'date': date, 'directory': directory}
+def save_latest_post_data(artist: str, id: int, date: str):
+    data = {'post_id': id, 'date': date}
     all_data = {}
 
     # If the JSON file already exists, load its current contents
@@ -173,7 +173,7 @@ def load_latest_post_data(artist: str):
 
     # Get the last post for this artist
     last_post = data[artist][-1]
-    return last_post.get('post_id', None), last_post.get('date', None), last_post.get('directory', None)
+    return last_post.get('post_id', None), last_post.get('date', None)
 
 
 def scrape_artist_page(artist_page):
@@ -208,7 +208,7 @@ def scrape_artist_page(artist_page):
         return
 
     # Load the saved latest post data
-    latest_post_id, latest_post_date, latest_post_dir = load_latest_post_data(artist_name)
+    latest_post_id, latest_post_date = load_latest_post_data(artist_name)
 
     new_post_urls = []
     for url in post_urls:
@@ -264,7 +264,7 @@ def scrape_artist_page(artist_page):
 
             if first_post:
                 # Save the latest post data
-                save_latest_post_data(artist_name, post_id, post_date, post_directory)
+                save_latest_post_data(artist_name, post_id, post_date)
                 first_post = False
         except Exception as e:
             print(f"Exception occurred while fetching media for post {post_url}: {e}")
@@ -276,5 +276,5 @@ def scrape_artist_page(artist_page):
 
 
 if __name__ == '__main__':
-    artist_page = 'https://kemono.party/fanbox/user/8139991'
+    artist_page = 'https://kemono.party/fanbox/user/41738951'
     scrape_artist_page(artist_page)
