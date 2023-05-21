@@ -7,19 +7,31 @@ import datetime
 import subprocess
 import json
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, unquote
+from urllib.parse import urljoin, unquote, urlparse, urlunparse
 
 
 def clear_console():
     subprocess.run('cls' if os.name == 'nt' else 'clear', shell=True)
 
 
-def sanitize_string(s: str) -> str:
+def sanitize_string(s):
+    # Remove any leading/trailing spaces
     s = s.strip()
+
+    # Remove invalid characters using regex
     s = re.sub(r'[<>:"/\\|?*\x00-\x1F]', '', s)
+
+    # Remove trailing periods and whitespaces
     s = s.rstrip('. ')
-    s = s[:200]  # Truncate the string to a reasonable length
-    return s
+
+    # Replace unsupported characters with an underscore
+    valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
+    s = ''.join(c if c in valid_chars else '_' for c in s)
+
+    # Limit the maximum length of the string to 255 characters
+    s = s[:255]
+
+    return s  # Returns the sanitized string
 
 
 def get_total_posts_count(soup: BeautifulSoup) -> int:
@@ -58,17 +70,22 @@ def get_artist_info(soup: BeautifulSoup) -> dict:
     return artist_info
 
 
-def download(url: str, filename: str, folder: str):
+def download(url: str, filename: str, folder):
     os.makedirs(folder, exist_ok=True)
     filename = sanitize_string(unquote(filename))
+
+    # Replace unsupported characters with an underscore
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
     filename = ''.join(c if c in valid_chars else '_' for c in filename)
+
     if os.path.exists(os.path.join(folder, filename)):
         print(f'File {filename} already exists in {folder}, skipping')
         return filename
+
+    # Encode the filename using URL encoding
     filename_encoded = filename.encode('utf-8', errors='ignore').decode('utf-8')
-    filename_encoded = filename_encoded.replace('/', '-')
-    filename_encoded = filename_encoded[:200]  # Truncate the filename if necessary
+    filename_encoded = filename_encoded.replace('/', '-')  # Replace slashes with hyphens for compatibility
+    filename_encoded = filename_encoded[:255]  # Truncate the filename to a reasonable length
     print(f'Saving {filename_encoded} to {folder}')
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
@@ -79,19 +96,18 @@ def download(url: str, filename: str, folder: str):
 
 def fetch_post_media(url: str, artist_folder: str):
     print(f'Downloading media from {url}')
+
     response = requests.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
+
     post_title = sanitize_string(soup.select_one('h1.post__title > span').get_text(strip=True))
     post_date = soup.select_one('div.post__published > time').get('datetime').split()[0]
 
-    folder_name = f'{post_date}_{post_title}'
-    folder_name = sanitize_string(folder_name)[:150]  # Truncate the folder name to fit within path length limitations
-    folder = os.path.join("Artists", artist_folder, folder_name)
+    folder = os.path.join("Artists", artist_folder, f'{post_date}_{post_title}')
+    os.makedirs(folder, exist_ok=True)  # Ensure the folder is created before anything else
 
-    os.makedirs(folder, exist_ok=True)
-
-    media_tags = soup.select('div.post__files > div.post__thumbnail > a.fileThumb')
-    for index, tag in enumerate(media_tags, start=1):
+    media_tags = soup.select('div.post__files > div.post__thumbnail > a.fileThumb') # Images
+    for tag in media_tags:
         media_url = tag.get('href')
         media_name = tag.get('download') or media_url.split('/')[-1].split('?')[0]
         media_name = sanitize_string(unquote(media_name))
@@ -102,7 +118,7 @@ def fetch_post_media(url: str, artist_folder: str):
             print(f'Error occurred while downloading {media_name}: {str(e)}')
             write_error_to_file(folder, media_name, url, str(e))
 
-    download_tags = soup.select('ul.post__attachments > li.post__attachment > a.post__attachment-link')
+    download_tags = soup.select('ul.post__attachments > li.post__attachment > a.post__attachment-link') # Attached files
     for tag in download_tags:
         download_url = tag.get('href')
         download_name = tag.get('download') or download_url.split('/')[-1].split('?')[0]
@@ -113,11 +129,14 @@ def fetch_post_media(url: str, artist_folder: str):
         except Exception as error:
             write_error_to_file(folder, download_name, url, str(error))
 
+    # Content text from the posts gets saved to a .txt file
+
     content_div = soup.select_one('div.post__content')
     if content_div:
         content_text = ""
         for element in content_div:
             if element.name == 'a' and element.get('href'):
+                # Extract text and URL of hyperlink
                 link_text = element.get_text(strip=True)
                 link_url = element.get('href')
                 content_text += f"{link_text} --> {link_url}\n"
@@ -169,6 +188,10 @@ def load_latest_post_data(artist: str):
 
 
 def scrape_artist_page(artist_page: str):
+    
+    parsed_url = urlparse(artist_page)
+    artist_page = urlunparse(parsed_url._replace(query=''))
+    
     print(f'Scraping artist page {artist_page}')
     response = requests.get(artist_page)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -214,7 +237,6 @@ def scrape_artist_page(artist_page: str):
     if number_of_new_posts != 0:
         print(f'{number_of_new_posts} new posts will be downloaded. Proceed? (Y/N): ')
         user_input = 'y'  # input().strip().lower()
-
         if user_input != 'y':
             print('Download cancelled.')
             return
@@ -260,5 +282,5 @@ def scrape_artist_page(artist_page: str):
 
 
 if __name__ == '__main__':
-    artist_page = 'https://kemono.party/patreon/user/8497568'
+    artist_page = 'https://kemono.party/fanbox/user/8139991'
     scrape_artist_page(artist_page)
