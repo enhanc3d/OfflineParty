@@ -54,9 +54,17 @@ def write_error_to_file(folder: str, filename: str, url: str, error: str):
         f.write(error_message)
 
 
-def get_artist_info(soup: BeautifulSoup) -> dict:
-    artist_name_element = soup.select_one('meta[name="artist_name"]')
-    artist_name = artist_name_element.get('content') if artist_name_element else None
+def get_artist_info(soup: BeautifulSoup, artist_page: str) -> dict:
+
+    def get_artist_name(artist_page):
+        response = requests.get(artist_page)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        artist_name = soup.select_one('span[itemprop="name"]')
+        if artist_name:
+            return sanitize_string(artist_name.get_text(strip=True))
+        return None
+
+    artist_name = get_artist_name(artist_page)
     number_of_posts = get_total_posts_count(soup)
     artist_platform_element = soup.select_one('meta[name="service"]')
     artist_platform = artist_platform_element.get('content') if artist_platform_element else None
@@ -187,16 +195,16 @@ def load_latest_post_data(artist: str):
     return last_post.get('post_id', None), last_post.get('date', None), last_post.get('directory', None)
 
 
-def scrape_artist_page(artist_page: str):
-    
+def scrape_artist_page(artist_page):
+
     parsed_url = urlparse(artist_page)
     artist_page = urlunparse(parsed_url._replace(query=''))
-    
+
     print(f'Scraping artist page {artist_page}')
     response = requests.get(artist_page)
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    artist_info = get_artist_info(soup)
+    artist_info = get_artist_info(soup, artist_page)
 
     artist_name = artist_info['artist_name']
     if artist_name:
@@ -282,5 +290,5 @@ def scrape_artist_page(artist_page: str):
 
 
 if __name__ == '__main__':
-    artist_page = 'https://kemono.party/fanbox/user/8139991'
+    artist_page = 'https://kemono.party/fanbox/user/41738951'
     scrape_artist_page(artist_page)
