@@ -242,7 +242,7 @@ def scrape_artist_page(artist_page):
         number_of_new_posts = len(new_post_urls)
         if number_of_new_posts != 0:
             print(f'{number_of_new_posts} new posts will be downloaded. Proceed? (Y/N): ')
-            user_input = 'y'  # input().strip().lower()
+            user_input = input().strip().lower()
             if user_input != 'y':
                 print('Download cancelled.')
                 return
@@ -290,5 +290,5 @@ def scrape_artist_page(artist_page):
 
 
 if __name__ == '__main__':
-    artist_page = 'https://kemono.party/fanbox/user/41738951'
+    artist_page = 'https://kemono.party/patreon/user/49965584'
     scrape_artist_page(artist_page)
