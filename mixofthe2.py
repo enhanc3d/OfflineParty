@@ -37,7 +37,7 @@ def write_error_to_file(folder: str, filename: str, url: str, error: str):
 
 def get_artist_info(soup: BeautifulSoup, artist_page: str) -> dict:
 
-    def get_artist_name(artist_page):
+    def get_artist_id(artist_page):
         response = requests.get(artist_page)
         soup = BeautifulSoup(response.text, 'html.parser')
         artist_name_meta = soup.select_one('meta[name="id"]')
@@ -45,12 +45,22 @@ def get_artist_info(soup: BeautifulSoup, artist_page: str) -> dict:
             return sanitize_filename(artist_name_meta['content'])
         return None
 
+    def get_artist_name(artist_page):
+        response = requests.get(artist_page)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        artist_name_meta = soup.select_one('meta[name="artist_name"]')
+        if artist_name_meta and 'content' in artist_name_meta.attrs:
+            return sanitize_filename(artist_name_meta['content'])
+        return None
+
     artist_name = get_artist_name(artist_page)
+    artist_id = get_artist_id(artist_page)
     number_of_posts = get_total_posts_count(soup)
     artist_platform_element = soup.select_one('meta[name="service"]')
     artist_platform = artist_platform_element.get('content') if artist_platform_element else None
 
     artist_info = {
+        'artist_id': artist_id,
         'artist_name': artist_name,
         'number_of_posts': number_of_posts,
         'artist_platform': artist_platform,
@@ -162,7 +172,7 @@ def load_latest_post_data(artist: str):
 
     # If the JSON file does not exist, return None values
     if not os.path.exists("latest_post_data.json"):
-        return None, None, None
+        return None
 
     with open("latest_post_data.json", 'r') as f:
         data = json.load(f)
@@ -187,94 +197,95 @@ def scrape_artist_page(artist_page):
     artist_info = get_artist_info(soup, artist_page)
 
     artist_name = artist_info['artist_name']
-    if artist_name:
+    artist_id = artist_info['artist_id']
+
+    if artist_id:
         artist_folder = sanitize_filename(artist_name)
         artist_folder_path = os.path.join("Artists", artist_folder)
         if os.path.exists(artist_folder_path):
-            print(f'Artist folder already exists: {artist_name}')
+            print(f'Artist folder already exists: {artist_folder}')
         else:
-            print(f'Creating folder for artist: {artist_name.encode(sys.stdout.encoding, errors="replace").decode()}')
+            print(f'Creating folder for artist: {artist_folder}')
             os.makedirs(artist_folder_path)
-    else:
-        print('Artist name not found. Skipping artist page.')
-        return
 
-    post_urls = [urljoin(artist_page, tag.get('href')) for tag in soup.select('article.post-card > a, article.post-card--preview > a')]
+        post_urls = [urljoin(artist_page, tag.get('href')) for tag in soup.select('article.post-card > a, article.post-card--preview > a')]
 
-    total_posts_count = artist_info['number_of_posts']
+        total_posts_count = artist_info['number_of_posts']
 
-    if total_posts_count == 0:
-        print('No posts found for this artist.')
-        return
-
-    # Load the saved latest post data
-    latest_post_id = load_latest_post_data(artist_name)
-
-    new_post_urls = []
-    for url in post_urls:
-        # Extract the post ID from the URL
-        post_id_match = re.search(r'(\d+)$', url)
-        if post_id_match is not None:
-            post_id = int(post_id_match.group(1))
-        else:
-            print(f'No valid post ID found in URL {url}. Skipping this URL.')
-            continue
-
-        # If the post is newer than the latest saved post, fetch its media
-        if not latest_post_id or post_id > latest_post_id:
-            new_post_urls.append(url)
-        elif post_id <= latest_post_id:
-            print("Stopping downloads - this post has been downloaded previously.")
-            break
-
-    number_of_new_posts = len(new_post_urls)
-    if number_of_new_posts != 0:
-        print(f'{number_of_new_posts} new posts will be downloaded. Proceed? (Y/N): ')
-        user_input = 'y'  # input().strip().lower()
-        if user_input != 'y':
-            print('Download cancelled.')
+        if total_posts_count == 0:
+            print('No posts found for this artist.')
             return
-    else:
-        print("No new posts to download!")
-        return
 
-    # Bool flag to check if it is the first post
-    first_post = True
+        # Load the saved latest post data
+        latest_post_id = load_latest_post_data(artist_id)
 
-    for i, post_url in enumerate(new_post_urls):
-        if i > 0:
-            clear_console()
-        try:
-            fetch_post_media(post_url, artist_name)
-            # Get new soup object for each post
-            response = requests.get(post_url)
-            soup = BeautifulSoup(response.text, 'html.parser')
-            # Extract post date and title to form directory name
-            post_title = sanitize_filename(soup.select_one('h1.post__title > span').get_text(strip=True))
-            post_date = soup.select_one('div.post__published > time').get('datetime').split()[0]
-            post_directory = os.path.join("Artists", artist_name, f'{post_date}_{post_title}')
-
+        new_post_urls = []
+        for url in post_urls:
             # Extract the post ID from the URL
-            post_id_match = re.search(r'(\d+)$', post_url)
+            post_id_match = re.search(r'(\d+)$', url)
             if post_id_match is not None:
                 post_id = int(post_id_match.group(1))
             else:
-                print(f'No valid post ID found in URL {post_url}. Skipping this URL.')
+                print(f'No valid post ID found in URL {url}. Skipping this URL.')
                 continue
 
-            if first_post:
-                # Save the latest post data
-                save_latest_post_data(artist_name, post_id, post_date)
-                first_post = False
-        except Exception as e:
-            print(f"Exception occurred while fetching media for post {post_url}: {e}")
-            break
+            # If the post is newer than the latest saved post, fetch its media
+            if not latest_post_id or post_id > latest_post_id:
+                new_post_urls.append(url)
+            elif post_id <= latest_post_id:
+                print("Stopping downloads - this post has been downloaded previously.")
+                break
 
-        print(f'Finished downloading post {i+1} of {number_of_new_posts}.')
+        number_of_new_posts = len(new_post_urls)
+        if number_of_new_posts != 0:
+            print(f'{number_of_new_posts} new posts will be downloaded. Proceed? (Y/N): ')
+            user_input = 'y'  # input().strip().lower()
+            if user_input != 'y':
+                print('Download cancelled.')
+                return
+        else:
+            print("No new posts to download!")
+            return
 
-    print('Finished scraping artist page.')
+        # Bool flag to check if it is the first post
+        first_post = True
+
+        for i, post_url in enumerate(new_post_urls):
+            if i > 0:
+                clear_console()
+            try:
+                fetch_post_media(post_url, artist_folder)
+                # Get new soup object for each post
+                response = requests.get(post_url)
+                soup = BeautifulSoup(response.text, 'html.parser')
+                # Extract post date and title to form directory name
+                post_title = sanitize_filename(soup.select_one('h1.post__title > span').get_text(strip=True))
+                post_date = soup.select_one('div.post__published > time').get('datetime').split()[0]
+                post_directory = os.path.join("Artists", artist_folder, f'{post_date}_{post_title}')
+
+                # Extract the post ID from the URL
+                post_id_match = re.search(r'(\d+)$', post_url)
+                if post_id_match is not None:
+                    post_id = int(post_id_match.group(1))
+                else:
+                    print(f'No valid post ID found in URL {post_url}. Skipping this URL.')
+                    continue
+
+                if first_post:
+                    # Save the latest post data
+                    save_latest_post_data(artist_id, post_id, post_date)
+                    first_post = False
+            except Exception as e:
+                print(f"Exception occurred while fetching media for post {post_url}: {e}")
+                break
+
+            print(f'Finished downloading post {i+1} of {number_of_new_posts}.')
+
+        print('Finished scraping artist page.')
+    else:
+        print('Artist name not found. Skipping artist page.')
 
 
 if __name__ == '__main__':
-    artist_page = 'https://kemono.party/patreon/user/16112298'
+    artist_page = 'https://kemono.party/fanbox/user/41738951'
     scrape_artist_page(artist_page)
