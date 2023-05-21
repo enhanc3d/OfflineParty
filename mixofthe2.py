@@ -169,11 +169,11 @@ def load_latest_post_data(artist: str):
 
     # If the artist is not in the JSON file, return None values
     if artist not in data:
-        return None, None, None
+        return None
 
     # Get the last post for this artist
     last_post = data[artist][-1]
-    return last_post.get('post_id', None), last_post.get('date', None)
+    return int(last_post.get('post_id', None))
 
 
 def scrape_artist_page(artist_page):
@@ -208,7 +208,7 @@ def scrape_artist_page(artist_page):
         return
 
     # Load the saved latest post data
-    latest_post_id, latest_post_date = load_latest_post_data(artist_name)
+    latest_post_id = load_latest_post_data(artist_name)
 
     new_post_urls = []
     for url in post_urls:
@@ -276,5 +276,5 @@ def scrape_artist_page(artist_page):
 
 
 if __name__ == '__main__':
-    artist_page = 'https://kemono.party/fanbox/user/41738951'
+    artist_page = 'https://kemono.party/patreon/user/16112298'
     scrape_artist_page(artist_page)
