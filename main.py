@@ -47,7 +47,6 @@ def download_file(url, filename, folder):
         with open(os.path.join(folder, filename_encoded), 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
-    return filename_encoded
 
 
 def download_media(url, artist_folder, total_posts):
@@ -244,4 +243,4 @@ def scrape_website(base_url):
 
 
 # To run
-scrape_website('https://kemono.party/fanbox/user/41738951')
+scrape_website('https://kemono.party/fanbox/user/8139991')
