@@ -18,7 +18,7 @@ def sanitize_string(s: str) -> str:
     s = s.strip()
     s = re.sub(r'[<>:"/\\|?*\x00-\x1F]', '', s)
     s = s.rstrip('. ')
-    s = s[:255]
+    s = s[:200]  # Truncate the string to a reasonable length
     return s
 
 
@@ -68,7 +68,7 @@ def download(url: str, filename: str, folder: str):
         return filename
     filename_encoded = filename.encode('utf-8', errors='ignore').decode('utf-8')
     filename_encoded = filename_encoded.replace('/', '-')
-    filename_encoded = filename_encoded[:255]
+    filename_encoded = filename_encoded[:200]  # Truncate the filename if necessary
     print(f'Saving {filename_encoded} to {folder}')
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
@@ -84,7 +84,10 @@ def fetch_post_media(url: str, artist_folder: str):
     post_title = sanitize_string(soup.select_one('h1.post__title > span').get_text(strip=True))
     post_date = soup.select_one('div.post__published > time').get('datetime').split()[0]
 
-    folder = os.path.join("Artists", artist_folder, f'{post_date}_{post_title}')
+    folder_name = f'{post_date}_{post_title}'
+    folder_name = sanitize_string(folder_name)[:150]  # Truncate the folder name to fit within path length limitations
+    folder = os.path.join("Artists", artist_folder, folder_name)
+
     os.makedirs(folder, exist_ok=True)
 
     media_tags = soup.select('div.post__files > div.post__thumbnail > a.fileThumb')
@@ -210,7 +213,7 @@ def scrape_artist_page(artist_page: str):
     number_of_new_posts = len(new_post_urls)
     if number_of_new_posts != 0:
         print(f'{number_of_new_posts} new posts will be downloaded. Proceed? (Y/N): ')
-        user_input = input().strip().lower()
+        user_input = 'y'  # input().strip().lower()
 
         if user_input != 'y':
             print('Download cancelled.')
@@ -257,5 +260,5 @@ def scrape_artist_page(artist_page: str):
 
 
 if __name__ == '__main__':
-    artist_page = 'https://kemono.party/fanbox/user/41738951'
+    artist_page = 'https://kemono.party/patreon/user/8497568'
     scrape_artist_page(artist_page)
