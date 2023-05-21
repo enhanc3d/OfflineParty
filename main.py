@@ -29,8 +29,12 @@ def get_total_posts_count(soup: BeautifulSoup) -> int:
 
 def write_error_to_file(folder: str, filename: str, url: str, error: str):
     error_filename = "scraping_errors.txt"
-    error_message = f"[{datetime.datetime.now().strftime('%d-%m-%Y %H:%M')}] Error occurred while scraping {filename} from {url}: {error}\n:"
-    with open(os.path.join(".", error_filename), 'a', encoding='utf-8') as f:
+    error_message = f"[{datetime.datetime.now().strftime('%d-%m-%Y %H:%M')}] Error occurred while scraping {filename} from {url}: {error}\n"
+    file_path = os.path.join(folder, error_filename)
+
+    os.makedirs(folder, exist_ok=True)  # Create the folder if it doesn't exist
+
+    with open(file_path, 'a', encoding='utf-8') as f:
         f.write(error_message)
 
 
