@@ -330,3 +330,36 @@ def scrape_artist_page(artist_page):
 if __name__ == '__main__':
     artist_page = 'https://kemono.party/patreon/user/22757225'
     scrape_artist_page(artist_page)
+
+# def get_artist_info(soup: BeautifulSoup, artist_page: str) -> dict:
+
+#     def get_artist_id(artist_page):
+#         response = requests.get(artist_page)
+#         soup = BeautifulSoup(response.text, 'html.parser')
+#         artist_name_meta = soup.select_one('meta[name="id"]')
+#         if artist_name_meta and 'content' in artist_name_meta.attrs:
+#             return sanitize_filename(artist_name_meta['content'])
+#         return None
+
+#     def get_artist_name(artist_page):
+#         response = requests.get(artist_page)
+#         soup = BeautifulSoup(response.text, 'html.parser')
+#         artist_name_meta = soup.select_one('meta[name="artist_name"]')
+#         if artist_name_meta and 'content' in artist_name_meta.attrs:
+#             return sanitize_filename(artist_name_meta['content'])
+#         return None
+
+#     artist_name = get_artist_name(artist_page)
+#     artist_id = get_artist_id(artist_page)
+#     number_of_posts = get_total_posts_count(soup)
+#     artist_platform_element = soup.select_one('meta[name="service"]')
+#     artist_platform = artist_platform_element.get('content') if artist_platform_element else None
+
+#     artist_info = {
+#         'artist_id': artist_id,
+#         'artist_name': artist_name,
+#         'number_of_posts': number_of_posts,
+#         'artist_platform': artist_platform,
+#     }
+
+#     return artist_info
