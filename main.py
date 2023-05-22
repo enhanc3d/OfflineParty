@@ -56,7 +56,7 @@ def get_new_posts(artist_id, artist_page):
     print(new_posts, "new posts")
 
     if new_posts != 0:
-        artist_uploaded is True
+        artist_uploaded = True
 
     return new_posts, artist_uploaded
 
@@ -118,14 +118,10 @@ def download(url: str, filename: str, folder):
         print(f'File {filename} already exists in {folder}, skipping')
         return filename
 
-    # Encode the filename using URL encoding
-    filename_encoded = filename.encode('utf-8', errors='ignore').decode('utf-8')
-    filename_encoded = filename_encoded.replace('/', '-')  # Replace slashes with hyphens for compatibility
-    filename_encoded = filename_encoded[:255]  # Truncate the filename to a reasonable length
-    print(f'Saving {filename_encoded} to {folder}')
+    print(f'Saving {filename} to {folder}')
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
-        with open(os.path.join(folder, filename_encoded), 'wb') as f:
+        with open(os.path.join(folder, filename), 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
 
