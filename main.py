@@ -363,3 +363,27 @@ if __name__ == '__main__':
 #     }
 
 #     return artist_info
+
+#               SCRAPE ARTIST PAGE
+
+# if first_post:
+#                     # Save the latest post data
+#                     save_latest_post_data(artist_id,
+#                                           post_id,
+#                                           post_date,
+#                                           number_of_posts,
+#                                           post_url,
+#                                           downloaded_posts)
+#                     first_post = False
+#                 else:
+#                     # Save the last downloaded post and downloaded posts count
+#                     save_latest_post_data(artist_id,
+#                                           latest_data[artist_id]['post_id'],
+#                                           latest_data[artist_id]['date'],
+#                                           latest_data[artist_id]['number_of_posts'],
+#                                           post_url,
+#                                           downloaded_posts+1)
+
+#             except Exception as e:
+#                 print(f"Exception occurred while fetching media for post {post_url}: {e}")
+#                 break
