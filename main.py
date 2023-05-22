@@ -35,8 +35,11 @@ def get_new_posts(artist_id, artist_page):
 
     artist_total_posts = get_total_posts_count(soup)
 
-    # If the JSON file does not exist, return the current total posts
-    if not os.path.exists("latest_post_data.json"):
+    # If the JSON file does not exist or is empty, return the current total posts
+    if not os.path.exists("latest_post_data.json") or os.stat("latest_post_data.json").st_size == 0:
+        # Create an empty JSON file with '{}' as the initial content
+        with open("latest_post_data.json", 'w') as f:
+            f.write('{}')
         return artist_total_posts, artist_uploaded
 
     with open("latest_post_data.json", 'r') as f:
@@ -205,7 +208,7 @@ def load_latest_post_data(artist: str):
     data = {}
 
     # If the JSON file does not exist, return None values
-    if not os.path.exists("latest_post_data.json"):
+    if not os.path.exists("latest_post_data.json") or os.stat("latest_post_data.json").st_size == 0:
         return None
 
     with open("latest_post_data.json", 'r') as f:
