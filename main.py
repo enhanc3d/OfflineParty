@@ -55,23 +55,40 @@ def get_new_posts(artist_id, artist_page):
 
 # JSON MANAGEMENT FUNCTIONS #
 
-def save_latest_post_data(artist: str, id: int, date: str, number_of_posts: int, last_downloaded_post: str, downloaded_posts: int):
-    data = {'post_id': id, 'date': date, 'number_of_posts': number_of_posts, 'last_downloaded_post': last_downloaded_post, 'downloaded_posts': downloaded_posts}
+def save_latest_post_data(artist: str, id: int, date: str, number_of_posts: int, 
+                          last_downloaded_post: str, downloaded_posts: int, first_post: bool):
+    
     all_data = {}
 
     # If the JSON file already exists, load its current contents
     if os.path.exists('latest_post_data.json'):
         with open('latest_post_data.json', 'r') as json_file:
             all_data = json.load(json_file)
+
     # If this artist is not in the JSON file, add an empty dictionary
     if artist not in all_data:
         all_data[artist] = {}
+
+    # Based on the value of first_post, we decide which data to update
+    if first_post:
+        # For the first post, we update all fields
+        data = {'post_id': id, 'date': date, 'number_of_posts': number_of_posts, 
+                'last_downloaded_post': last_downloaded_post, 'downloaded_posts': downloaded_posts}
+    else:
+        # For subsequent posts, we only update last_downloaded_post and downloaded_posts
+        data = {'post_id': all_data[artist]['post_id'], 
+                'date': all_data[artist]['date'], 
+                'number_of_posts': all_data[artist]['number_of_posts'], 
+                'last_downloaded_post': last_downloaded_post, 
+                'downloaded_posts': downloaded_posts}
+
     # Append the new post data
     all_data[artist] = data
 
     # Save the new JSON data with proper encoding
     with open('latest_post_data.json', 'w', encoding='utf-8') as json_file:
         json.dump(all_data, json_file, indent=4, ensure_ascii=False)  # Set ensure_ascii=False
+
 
 
 def load_latest_post_data(artist: str):
@@ -358,8 +375,18 @@ def scrape_artist_page(artist_page):
                               post_date,
                               number_of_posts,
                               post_url,
-                              downloaded_posts + i + 1)
+                              downloaded_posts + i + 1,
+                              first_post)
                     first_post = False
+                else:
+                    # Update only post_url and downloaded_posts
+                    save_latest_post_data(artist_id,
+                              post_id,
+                              post_date,
+                              number_of_posts,
+                              post_url,
+                              downloaded_posts + i + 1,
+                              first_post)
             except Exception as e:
                 print(f"Exception occurred while fetching media for post {post_url}: {e}")
                 break
