@@ -61,6 +61,47 @@ def get_new_posts(artist_id, artist_page):
     return new_posts, artist_uploaded
 
 
+# Function to save latest post data to a JSON file
+def save_latest_post_data(artist: str, id: int, date: str, number_of_posts: int):
+    data = {'post_id': id, 'date': date, 'number_of_posts': number_of_posts}
+    all_data = {}
+
+    # If the JSON file already exists, load its current contents
+    if os.path.exists('latest_post_data.json'):
+        with open('latest_post_data.json', 'r') as json_file:
+            all_data = json.load(json_file)
+    # If this artist is not in the JSON file, add an empty dictionary
+    if artist not in all_data:
+        all_data[artist] = {}
+    # Append the new post data
+    all_data[artist] = data
+
+    # Save the new JSON data with proper encoding
+    with open('latest_post_data.json', 'w', encoding='utf-8') as json_file:
+        json.dump(all_data, json_file, indent=4, ensure_ascii=False)  # Set ensure_ascii=False
+
+
+# Function to load latest post data from a JSON file
+def load_latest_post_data(artist: str):
+    data = {}
+
+    # If the JSON file does not exist, return None values
+    if not os.path.exists("latest_post_data.json") or os.stat("latest_post_data.json").st_size == 0:
+        return None
+
+    with open("latest_post_data.json", 'r') as f:
+        data = json.load(f)
+
+    # If the artist is not in the JSON file, return None values
+    if artist not in data:
+        return None
+
+    # Get the post data for this artist
+    artist_data = data[artist]
+    # Return only the post id
+    return artist_data.get('post_id', None)
+
+
 def write_error_to_file(folder: str, filename: str, url: str, error: str):
     error_filename = "scraping_errors.txt"
     error_message = f"[{datetime.datetime.now().strftime('%d-%m-%Y %H:%M')}] Error occurred while scraping {filename} from {url}: {error}\n"
@@ -177,47 +218,6 @@ def fetch_post_media(url: str, artist_folder: str):
         txt_filename = "content.txt"
         with open(os.path.join(folder, txt_filename), 'w', encoding='utf-8') as f:
             f.write(content_text)
-
-
-# Function to save latest post data to a JSON file
-def save_latest_post_data(artist: str, id: int, date: str, number_of_posts: int):
-    data = {'post_id': id, 'date': date, 'number_of_posts': number_of_posts}
-    all_data = {}
-
-    # If the JSON file already exists, load its current contents
-    if os.path.exists('latest_post_data.json'):
-        with open('latest_post_data.json', 'r') as json_file:
-            all_data = json.load(json_file)
-    # If this artist is not in the JSON file, add an empty dictionary
-    if artist not in all_data:
-        all_data[artist] = {}
-    # Append the new post data
-    all_data[artist] = data
-
-    # Save the new JSON data with proper encoding
-    with open('latest_post_data.json', 'w', encoding='utf-8') as json_file:
-        json.dump(all_data, json_file, indent=4, ensure_ascii=False)  # Set ensure_ascii=False
-
-
-# Function to load latest post data from a JSON file
-def load_latest_post_data(artist: str):
-    data = {}
-
-    # If the JSON file does not exist, return None values
-    if not os.path.exists("latest_post_data.json") or os.stat("latest_post_data.json").st_size == 0:
-        return None
-
-    with open("latest_post_data.json", 'r') as f:
-        data = json.load(f)
-
-    # If the artist is not in the JSON file, return None values
-    if artist not in data:
-        return None
-
-    # Get the post data for this artist
-    artist_data = data[artist]
-    # Return only the post id
-    return artist_data.get('post_id', None)
 
 
 def scrape_artist_page(artist_page):
