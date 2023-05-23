@@ -55,9 +55,8 @@ def get_new_posts(artist_id, artist_page):
 
 # JSON MANAGEMENT FUNCTIONS #
 
-
-def save_latest_post_data(artist: str, id: int, date: str, number_of_posts: int):
-    data = {'post_id': id, 'date': date, 'number_of_posts': number_of_posts}
+def save_latest_post_data(artist: str, id: int, date: str, number_of_posts: int, last_downloaded_post: str, downloaded_posts: int):
+    data = {'post_id': id, 'date': date, 'number_of_posts': number_of_posts, 'last_downloaded_post': last_downloaded_post, 'downloaded_posts': downloaded_posts}
     all_data = {}
 
     # If the JSON file already exists, load its current contents
@@ -80,19 +79,18 @@ def load_latest_post_data(artist: str):
 
     # If the JSON file does not exist, return None values
     if not os.path.exists("latest_post_data.json") or os.stat("latest_post_data.json").st_size == 0:
-        return None
+        return None, 0
 
     with open("latest_post_data.json", 'r') as f:
         data = json.load(f)
 
     # If the artist is not in the JSON file, return None values
     if artist not in data:
-        return None
+        return None, 0
 
     # Get the post data for this artist
     artist_data = data[artist]
-    # Return only the post id
-    return artist_data.get('post_id', None)
+    return artist_data.get('post_id', None), artist_data.get('downloaded_posts', 0)
 
 
 # ERROR OUTPUT
@@ -295,8 +293,8 @@ def scrape_artist_page(artist_page):
             print('No posts found for this artist.')
             return
 
-        # Load the saved latest post id
-        latest_post_id = load_latest_post_data(artist_id)
+       # Load the saved latest post id and downloaded_posts count
+        latest_post_id, downloaded_posts = load_latest_post_data(artist_id)
 
         new_post_urls = []
         for url in post_urls:
@@ -356,9 +354,11 @@ def scrape_artist_page(artist_page):
                 if first_post:
                     # Save the latest post data
                     save_latest_post_data(artist_id,
-                                        post_id,
-                                        post_date,
-                                        number_of_posts)
+                              post_id,
+                              post_date,
+                              number_of_posts,
+                              post_url,
+                              downloaded_posts + i + 1)
                     first_post = False
             except Exception as e:
                 print(f"Exception occurred while fetching media for post {post_url}: {e}")
