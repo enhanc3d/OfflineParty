@@ -14,9 +14,14 @@ def clear_console():
     subprocess.run('cls' if os.name == 'nt' else 'clear', shell=True)
 
 
+def make_soup(url: str) -> BeautifulSoup:
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    return soup
+
+
 def get_new_posts(artist_id, artist_page):
-    response = requests.get(artist_page)
-    soup = BeautifulSoup(response.text, 'html.parser')
+    soup = make_soup(artist_page)
     artist_uploaded = False
     artist_info = get_artist_info(soup, artist_page)
 
@@ -109,23 +114,21 @@ def write_error_to_file(folder: str, filename: str, url: str, error: str):
 
 def get_artist_info(soup: BeautifulSoup, artist_page: str) -> dict:
 
-    def get_artist_id(artist_page):
-        response = requests.get(artist_page)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        artist_name_meta = soup.select_one('meta[name="id"]')
-        if artist_name_meta and 'content' in artist_name_meta.attrs:
-            return sanitize_filename(artist_name_meta['content'])
-        return None
-
     def get_artist_name(artist_page):
-        response = requests.get(artist_page)
-        soup = BeautifulSoup(response.text, 'html.parser')
+        soup = make_soup(artist_page)
         artist_name_meta = soup.select_one('meta[name="artist_name"]')
         if artist_name_meta and 'content' in artist_name_meta.attrs:
             return sanitize_filename(artist_name_meta['content'])
         return None
 
-    def get_total_posts_count(soup: BeautifulSoup) -> int:
+    def get_artist_id(artist_page):
+        soup = make_soup(artist_page)
+        artist_name_meta = soup.select_one('meta[name="id"]')
+        if artist_name_meta and 'content' in artist_name_meta.attrs:
+            return sanitize_filename(artist_name_meta['content'])
+        return None
+
+    def get_number_of_posts(soup: BeautifulSoup) -> int:
         post_count_element = soup.select_one('div.paginator > small')
         if post_count_element:
             post_count_text = post_count_element.get_text(strip=True)
@@ -140,7 +143,7 @@ def get_artist_info(soup: BeautifulSoup, artist_page: str) -> dict:
 
     artist_name = get_artist_name(artist_page)
     artist_id = get_artist_id(artist_page)
-    number_of_posts = get_total_posts_count(soup)
+    number_of_posts = get_number_of_posts(soup)
     artist_platform_element = soup.select_one('meta[name="service"]')
     artist_platform = artist_platform_element.get('content') if artist_platform_element else None
 
@@ -155,46 +158,21 @@ def get_artist_info(soup: BeautifulSoup, artist_page: str) -> dict:
     return artist_info
 
 
-def fetch_post_media(url: str, artist_folder: str):
-    print(f'Downloading media from {url}')
+def get_post_info(soup: BeautifulSoup, url: str) -> dict:
+    """Gather information from a post."""
 
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, 'html.parser')
+    # Gather the post title
+    post_title = soup.select_one('h1.post__title > span')
+    post_title = sanitize_filename(post_title.get_text(strip=True)) if post_title else None
 
-    post_title = sanitize_filename(soup.select_one('h1.post__title > span').get_text(strip=True))
-    post_date = soup.select_one('div.post__published > time').get('datetime').split()[0]
+    # Gather the post date
+    post_date = soup.select_one('div.post__published > time')
+    post_date = post_date.get('datetime').split()[0] if post_date else None
 
-    folder = os.path.join("Artists", artist_folder, f'{post_date}_{post_title}')
-    os.makedirs(folder, exist_ok=True)  # Ensure the folder is created before anything else
-
-    media_tags = soup.select('div.post__files > div.post__thumbnail > a.fileThumb') # Images
-    for tag in media_tags:
-        media_url = tag.get('href')
-        media_name = tag.get('download') or media_url.split('/')[-1].split('?')[0]
-        media_name = sanitize_filename(unquote(media_name))
-        try:
-            print(f'Downloading {media_name}')
-            download(media_url, media_name, folder)
-        except Exception as e:
-            print(f'Error occurred while downloading {media_name}: {str(e)}')
-            write_error_to_file(folder, media_name, url, str(e))
-
-    download_tags = soup.select('ul.post__attachments > li.post__attachment > a.post__attachment-link') # Attached files
-    for tag in download_tags:
-        download_url = tag.get('href')
-        download_name = tag.get('download') or download_url.split('/')[-1].split('?')[0]
-        download_name = sanitize_filename(unquote(download_name))
-        try:
-            print(f'Downloading {download_name}')
-            download(download_url, download_name, folder)
-        except Exception as error:
-            write_error_to_file(folder, download_name, url, str(error))
-
-    # Content text from the posts gets saved to a .txt file
-
+    # Gather the post content
     content_div = soup.select_one('div.post__content')
+    content_text = ""
     if content_div:
-        content_text = ""
         for element in content_div:
             if element.name == 'a' and element.get('href'):
                 # Extract text and URL of hyperlink
@@ -203,9 +181,67 @@ def fetch_post_media(url: str, artist_folder: str):
                 content_text += f"{link_text} --> {link_url}\n"
             else:
                 content_text += str(element) + '\n'
-        txt_filename = "content.txt"
-        with open(os.path.join(folder, txt_filename), 'w', encoding='utf-8') as f:
-            f.write(content_text)
+
+    # Gather media associated with the post
+    media_tags = soup.select('div.post__files > div.post__thumbnail > a.fileThumb') # Images
+    download_tags = soup.select('ul.post__attachments > li.post__attachment > a.post__attachment-link') # Attached files
+
+    # Extract the post ID from the URL
+    post_id_match = re.search(r'(\d+)$', url)
+    post_id = int(post_id_match.group(1)) if post_id_match else None
+
+    post_info = {
+        'post_title': post_title,
+        'post_date': post_date,
+        'post_content': content_text,
+        'media_tags': media_tags,
+        'download_tags': download_tags,
+        'post_id': post_id,
+    }
+
+    return post_info
+
+
+def fetch_post_media(url: str, artist_folder: str):
+    print(f'Downloading media from {url}')
+
+    soup = make_soup(url)
+    post_info = get_post_info(soup, url)
+
+    post_title = post_info['post_title']
+    post_date = post_info['post_date']
+
+    folder = os.path.join("Artists", artist_folder, f'{post_date}_{post_title}')
+    os.makedirs(folder, exist_ok=True)  # Ensure the folder is created before anything else
+
+    media_tags = post_info['media_tags']
+    for media_tag in media_tags:
+        media_url = urljoin(url, media_tag.get('href'))
+        media_name = media_url.split('/')[-1].split('?')[0]
+        media_name = sanitize_filename(unquote(media_name))
+        try:
+            print(f'Downloading {media_name}')
+            download(media_url, media_name, folder)
+        except Exception as e:
+            print(f'Error occurred while downloading {media_name}: {str(e)}')
+            write_error_to_file(folder, media_name, url, str(e))
+
+    download_tags = post_info['download_tags']
+    for download_tag in download_tags:
+        download_url = urljoin(url, download_tag.get('href'))
+        download_name = download_url.split('/')[-1].split('?')[0]
+        download_name = sanitize_filename(unquote(download_name))
+        try:
+            print(f'Downloading {download_name}')
+            download(download_url, download_name, folder)
+        except Exception as error:
+            write_error_to_file(folder, download_name, url, str(error))
+
+    # Content text from the posts gets saved to a .txt file
+    content_text = post_info['post_content']
+    txt_filename = "content.txt"
+    with open(os.path.join(folder, txt_filename), 'w', encoding='utf-8') as f:
+        f.write(content_text)
 
 
 def download(url: str, filename: str, folder):
@@ -229,8 +265,7 @@ def download(url: str, filename: str, folder):
 
 
 def scrape_artist_page(artist_page):
-    response = requests.get(artist_page)
-    soup = BeautifulSoup(response.text, 'html.parser')
+    soup = make_soup(artist_page)
 
     parsed_url = urlparse(artist_page)
     artist_page = urlunparse(parsed_url._replace(query=''))
@@ -304,11 +339,11 @@ def scrape_artist_page(artist_page):
                 clear_console()
             try:
                 fetch_post_media(post_url, artist_folder)
-                # Get new soup object for each post
-                response = requests.get(post_url)
-                soup = BeautifulSoup(response.text, 'html.parser')
 
-                post_date = soup.select_one('div.post__published > time').get('datetime').split()[0]
+                # Get post info
+                soup = make_soup(post_url)
+                post_info = get_post_info(soup, post_url)
+                post_date = post_info['post_date']
 
                 # Extract the post ID from the URL
                 post_id_match = re.search(r'(\d+)$', post_url)
@@ -321,9 +356,9 @@ def scrape_artist_page(artist_page):
                 if first_post:
                     # Save the latest post data
                     save_latest_post_data(artist_id,
-                                          post_id,
-                                          post_date,
-                                          number_of_posts)
+                                        post_id,
+                                        post_date,
+                                        number_of_posts)
                     first_post = False
             except Exception as e:
                 print(f"Exception occurred while fetching media for post {post_url}: {e}")
@@ -331,9 +366,7 @@ def scrape_artist_page(artist_page):
 
             print(f'Finished downloading post {i+1} of {number_of_new_posts}.')
 
-        print('Finished scraping artist page.')
-    else:
-        print('Artist name not found. Skipping artist page.')
+    print('Finished scraping artist page.')
 
 
 if __name__ == '__main__':
