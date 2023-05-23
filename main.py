@@ -14,26 +14,13 @@ def clear_console():
     subprocess.run('cls' if os.name == 'nt' else 'clear', shell=True)
 
 
-def get_total_posts_count(soup: BeautifulSoup) -> int:
-    post_count_element = soup.select_one('div.paginator > small')
-    if post_count_element:
-        post_count_text = post_count_element.get_text(strip=True)
-        post_count_match = re.search(r'\d+$', post_count_text)
-        if post_count_match:
-            # print(f'{int(post_count_match.group())} articles found')
-            return int(post_count_match.group())
-    articles = soup.select('article.post-card, article.post-card--preview')
-    if articles:
-        return len(articles)
-    return None
-
-
 def get_new_posts(artist_id, artist_page):
     response = requests.get(artist_page)
     soup = BeautifulSoup(response.text, 'html.parser')
     artist_uploaded = False
+    artist_info = get_artist_info(soup, artist_page)
 
-    artist_total_posts = get_total_posts_count(soup)
+    artist_total_posts = artist_info['number_of_posts']
 
     # If the JSON file does not exist or is empty, return the current total posts
     if not os.path.exists("latest_post_data.json") or os.stat("latest_post_data.json").st_size == 0:
@@ -61,7 +48,9 @@ def get_new_posts(artist_id, artist_page):
     return new_posts, artist_uploaded
 
 
-# Function to save latest post data to a JSON file
+# JSON MANAGEMENT FUNCTIONS #
+
+
 def save_latest_post_data(artist: str, id: int, date: str, number_of_posts: int):
     data = {'post_id': id, 'date': date, 'number_of_posts': number_of_posts}
     all_data = {}
@@ -81,7 +70,6 @@ def save_latest_post_data(artist: str, id: int, date: str, number_of_posts: int)
         json.dump(all_data, json_file, indent=4, ensure_ascii=False)  # Set ensure_ascii=False
 
 
-# Function to load latest post data from a JSON file
 def load_latest_post_data(artist: str):
     data = {}
 
@@ -102,6 +90,9 @@ def load_latest_post_data(artist: str):
     return artist_data.get('post_id', None)
 
 
+# ERROR OUTPUT
+
+
 def write_error_to_file(folder: str, filename: str, url: str, error: str):
     error_filename = "scraping_errors.txt"
     error_message = f"[{datetime.datetime.now().strftime('%d-%m-%Y %H:%M')}] Error occurred while scraping {filename} from {url}: {error}\n"
@@ -111,6 +102,9 @@ def write_error_to_file(folder: str, filename: str, url: str, error: str):
 
     with open(file_path, 'a', encoding='utf-8') as f:
         f.write(error_message)
+
+
+# DATA GATHERING
 
 
 def get_artist_info(soup: BeautifulSoup, artist_page: str) -> dict:
@@ -131,6 +125,19 @@ def get_artist_info(soup: BeautifulSoup, artist_page: str) -> dict:
             return sanitize_filename(artist_name_meta['content'])
         return None
 
+    def get_total_posts_count(soup: BeautifulSoup) -> int:
+        post_count_element = soup.select_one('div.paginator > small')
+        if post_count_element:
+            post_count_text = post_count_element.get_text(strip=True)
+            post_count_match = re.search(r'\d+$', post_count_text)
+            if post_count_match:
+                # print(f'{int(post_count_match.group())} articles found')
+                return int(post_count_match.group())
+        articles = soup.select('article.post-card, article.post-card--preview')
+        if articles:
+            return len(articles)
+        return None
+
     artist_name = get_artist_name(artist_page)
     artist_id = get_artist_id(artist_page)
     number_of_posts = get_total_posts_count(soup)
@@ -142,29 +149,10 @@ def get_artist_info(soup: BeautifulSoup, artist_page: str) -> dict:
         'artist_name': artist_name,
         'number_of_posts': number_of_posts,
         'artist_platform': artist_platform,
+        'number_of_posts': number_of_posts,
     }
 
     return artist_info
-
-
-def download(url: str, filename: str, folder):
-    os.makedirs(folder, exist_ok=True)
-    filename = sanitize_filename(unquote(filename))
-
-    # Replace unsupported characters with an underscore
-    valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-    filename = ''.join(c if c in valid_chars else '_' for c in filename)
-
-    if os.path.exists(os.path.join(folder, filename)):
-        print(f'File {filename} already exists in {folder}, skipping')
-        return filename
-
-    print(f'Saving {filename} to {folder}')
-    with requests.get(url, stream=True) as r:
-        r.raise_for_status()
-        with open(os.path.join(folder, filename), 'wb') as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
 
 
 def fetch_post_media(url: str, artist_folder: str):
@@ -218,6 +206,26 @@ def fetch_post_media(url: str, artist_folder: str):
         txt_filename = "content.txt"
         with open(os.path.join(folder, txt_filename), 'w', encoding='utf-8') as f:
             f.write(content_text)
+
+
+def download(url: str, filename: str, folder):
+    os.makedirs(folder, exist_ok=True)
+    filename = sanitize_filename(unquote(filename))
+
+    # Replace unsupported characters with an underscore
+    valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
+    filename = ''.join(c if c in valid_chars else '_' for c in filename)
+
+    if os.path.exists(os.path.join(folder, filename)):
+        print(f'File {filename} already exists in {folder}, skipping')
+        return filename
+
+    print(f'Saving {filename} to {folder}')
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(os.path.join(folder, filename), 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
 
 
 def scrape_artist_page(artist_page):
