@@ -288,6 +288,7 @@ def scrape_artist_page(artist_page):
             return
 
         # Bool flag to check if it is the first post
+        # Runs once in the first loop
         first_post = True
 
         for i, post_url in enumerate(new_post_urls):
