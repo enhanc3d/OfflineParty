@@ -3,12 +3,14 @@ import re
 import requests
 import string
 import datetime
+import json
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, unquote
 from pathvalidate import sanitize_filename
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 
+metadata_filename = "metadata.json"
 
 def clear_console(artist_name):
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -19,6 +21,23 @@ def make_soup(url: str) -> BeautifulSoup:
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
     return soup
+
+
+def load_metadata(artist_folder):
+    """Load the metadata file for the specified artist. 
+       If no metadata file exists, create an empty one."""
+    metadata_file_path = os.path.join(artist_folder, metadata_filename)
+    if not os.path.exists(metadata_file_path):
+        return {}
+    with open(metadata_file_path, 'r') as f:
+        return json.load(f)
+
+
+def save_metadata(artist_folder, metadata):
+    """Save the metadata for the specified artist."""
+    metadata_file_path = os.path.join(artist_folder, metadata_filename)
+    with open(metadata_file_path, 'w') as f:
+        json.dump(metadata, f, indent=4)
 
 
 def get_next_page(artist_page):
@@ -65,14 +84,15 @@ def get_artist_info(soup: BeautifulSoup, artist_page: str) -> dict:
         post_count_element = soup.select_one('div.paginator > small')
         if post_count_element:
             post_count_text = post_count_element.get_text(strip=True)
-            post_count_match = re.search(r'\d+$', post_count_text)
+            post_count_match = re.search(r'(\d+)$', post_count_text)
             if post_count_match:
-                # print(f'{int(post_count_match.group())} articles found')
                 return int(post_count_match.group())
+        
         articles = soup.select('article.post-card, article.post-card--preview')
         if articles:
             return len(articles)
         return None
+
 
     artist_name = get_artist_name(artist_page)
     number_of_posts = get_number_of_posts(soup)
@@ -177,8 +197,6 @@ def fetch_post_media(url: str, artist_folder: str):
         f.write(content_text)
 
 
-
-
 def download(url: str, filename: str, folder):
     os.makedirs(folder, exist_ok=True)
     filename = sanitize_filename(unquote(filename))
@@ -200,45 +218,64 @@ def download(url: str, filename: str, folder):
 
 
 def scrape_artist_page(artist_page):
+    # Load metadata before starting the scraping process
+    soup = make_soup(artist_page)
+    artist_info = get_artist_info(soup, artist_page)
+    artist_name = artist_info['artist_name']
+    artist_folder = sanitize_filename(artist_name)
+    artist_folder_path = os.path.join("Artists", artist_folder)
+    os.makedirs(artist_folder_path, exist_ok=True)
+
+    # Load metadata
+    metadata = load_metadata(artist_folder_path)
+
     while True:
-        soup = make_soup(artist_page)
-        artist_info = get_artist_info(soup, artist_page)
-
-        artist_name = artist_info['artist_name']
-        artist_folder = sanitize_filename(artist_name)
-        artist_folder_path = os.path.join("Artists", artist_folder)
-        os.makedirs(artist_folder_path, exist_ok=True)
-        
-        print(f"Downloading posts from {artist_name}")  # Print the artist name here
-
         post_urls = [urljoin(artist_page, tag.get('href')) for tag in soup.select('article.post-card > a, article.post-card--preview > a')]
         total_posts = len(post_urls)
-        progress_bar = tqdm(total=total_posts)
+        progress_bar = tqdm(total=total_posts)  # Initiate progress bar with total posts count
 
         for index, post_url in enumerate(post_urls, start=1):
             post_id_match = re.search(r'(\d+)$', post_url)
             if post_id_match is None:
                 print(f'No valid post ID found in URL {post_url}. Skipping this URL.')
                 continue
+            post_id = post_id_match.group(0)
+
+            # Check if the post is already in the metadata
+            if post_id in metadata:
+                print(f"Post {post_id} already downloaded. Skipping.")
+                progress_bar.update(1)  # Update progress bar even if skipping a post
+                continue
+            
+            # Otherwise, process the post
             try:
                 fetch_post_media(post_url, artist_folder)
-                clear_console(artist_name)  # Pass artist_name to clear_console() here
+                clear_console(artist_name)  # Clear console after downloading post
+                metadata[post_id] = True  # Add the post ID to the metadata
             except Exception as e:
                 print(f"Exception occurred while fetching media for post {post_url}: {e}")
 
-            progress_bar.update(1)  # Increment progress bar
+            progress_bar.update(1)  # Update progress bar after processing a post
             progress_bar.set_postfix_str(f"Downloading post {index}/{total_posts}")
 
-        progress_bar.close()  # Close progress bar
+        # Save metadata after each page
+        save_metadata(artist_folder_path, metadata)
 
+        # Handle next page
         next_page = get_next_page(artist_page)
         if next_page:
             artist_page = next_page
+            soup = make_soup(artist_page)
         else:
             break
+
+        progress_bar.close()  # Close progress bar after each page
+
+    progress_bar.close()
+    clear_console(artist_name)
     print(f"Done! Files saved in {artist_folder_path}")
 
 
 if __name__ == '__main__':
-    artist_page = 'https://kemono.party/fanbox/user/41738951'
+    artist_page = 'https://kemono.party/fanbox/user/7026506'
     scrape_artist_page(artist_page)
