@@ -3,12 +3,16 @@ import re
 import requests
 import string
 import datetime
-import subprocess
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, unquote, urlparse
+from urllib.parse import urljoin, unquote
 from pathvalidate import sanitize_filename
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
+
+
+def clear_console(artist_name):
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print(f"Downloading posts from '{artist_name}'\n")
 
 
 def make_soup(url: str) -> BeautifulSoup:
@@ -130,7 +134,6 @@ def get_post_info(soup: BeautifulSoup, url: str) -> dict:
 
 
 def fetch_post_media(url: str, artist_folder: str):
-    # print(f'Downloading media from {url}')
 
     soup = make_soup(url)
     post_info = get_post_info(soup, url)
@@ -174,6 +177,8 @@ def fetch_post_media(url: str, artist_folder: str):
         f.write(content_text)
 
 
+
+
 def download(url: str, filename: str, folder):
     os.makedirs(folder, exist_ok=True)
     filename = sanitize_filename(unquote(filename))
@@ -196,8 +201,6 @@ def download(url: str, filename: str, folder):
 
 def scrape_artist_page(artist_page):
     while True:
-        parsed_url = urlparse(artist_page)
-
         soup = make_soup(artist_page)
         artist_info = get_artist_info(soup, artist_page)
 
@@ -205,31 +208,26 @@ def scrape_artist_page(artist_page):
         artist_folder = sanitize_filename(artist_name)
         artist_folder_path = os.path.join("Artists", artist_folder)
         os.makedirs(artist_folder_path, exist_ok=True)
+        
+        print(f"Downloading posts from {artist_name}")  # Print the artist name here
 
         post_urls = [urljoin(artist_page, tag.get('href')) for tag in soup.select('article.post-card > a, article.post-card--preview > a')]
         total_posts = len(post_urls)
-        progress_bar = tqdm(total=total_posts, desc='Progress', unit='post', bar_format='{l_bar}{bar}')
+        progress_bar = tqdm(total=total_posts)
 
-        for post_url in post_urls:
+        for index, post_url in enumerate(post_urls, start=1):
             post_id_match = re.search(r'(\d+)$', post_url)
             if post_id_match is None:
                 print(f'No valid post ID found in URL {post_url}. Skipping this URL.')
                 continue
-
-            # Check if the file already exists in the artist folder
-            post_title = get_post_info(make_soup(post_url), post_url)['post_title']
-            post_filename = sanitize_filename(post_title)
-            post_filepath = os.path.join(artist_folder_path, post_filename)
-            if os.path.exists(post_filepath):
-                # print(f'File already exists for post {post_url}. Skipping further scraping.')
-                return
-
             try:
                 fetch_post_media(post_url, artist_folder)
+                clear_console(artist_name)  # Pass artist_name to clear_console() here
             except Exception as e:
                 print(f"Exception occurred while fetching media for post {post_url}: {e}")
 
             progress_bar.update(1)  # Increment progress bar
+            progress_bar.set_postfix_str(f"Downloading post {index}/{total_posts}")
 
         progress_bar.close()  # Close progress bar
 
@@ -242,5 +240,5 @@ def scrape_artist_page(artist_page):
 
 
 if __name__ == '__main__':
-    artist_page = 'https://kemono.party/fanbox/user/45421635'
+    artist_page = 'https://kemono.party/fanbox/user/41738951'
     scrape_artist_page(artist_page)
