@@ -2,3 +2,4 @@ Artists
 latest_downloaded_posts.json
 scraping_errors.txt
 latest_post_data.json
+.env
