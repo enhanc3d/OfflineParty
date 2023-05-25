@@ -4,6 +4,9 @@ import requests
 import datetime
 import json
 import signal
+import getpass
+import browser_cookie3
+from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, unquote
 from pathvalidate import sanitize_filename
@@ -11,6 +14,58 @@ from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 
 metadata_filename = "metadata.json"
+
+
+def fetch_session_id_cookie():
+
+    # Load cookies from the browser
+    cj = browser_cookie3.load()
+
+    # Create a requests session
+    session = requests.Session()
+
+    # Use the cookies in the session
+    session.cookies = cj
+
+    # Extract the session cookie from the response
+    session_cookie = None
+    for cookie in session.cookies:
+        if "kemono.party" in cookie.domain and cookie.name == 'session':
+            session_cookie = cookie.value
+            break
+
+    return session_cookie
+
+
+def get_favorite_artists(session):
+    # Fetch the favorite artists JSON
+    favorites_json_url = 'https://kemono.party/api/v1/account/favorites'  # Replace with the actual favorites JSON URL
+    headers = {'Authorization': fetch_session_id_cookie()}  # Replace 'YOUR_ACCESS_TOKEN' with the actual access token
+    favorites_response = session.get(favorites_json_url, headers=headers)
+    print(favorites_response)
+
+    if favorites_response.status_code == 200:
+        # Parse the JSON response
+        favorites_data = favorites_response.json()
+
+        # Extract the artist usernames from the JSON
+        artist_list = []
+        for artist in favorites_data:
+            service = artist['service']
+            id = artist['id']
+            artist_list.append(f'https://kemono.party/{service}/user/{id}')
+
+        # Output the artist list to a text file for debugging
+        with open('artist_list.txt', 'w') as f:
+            for artist in artist_list:
+                f.write(f'{artist}\n')
+
+        print(artist_list)
+        return artist_list
+    else:
+        print("Failed to fetch favorites JSON.")
+        print("Error message:", favorites_response.text)
+        return []  # Return an empty list if there are no favorite artists
 
 
 def clear_console(artist_name):
@@ -302,6 +357,10 @@ def scrape_artist_page(artist_page):
 
     # Load metadata before starting the scraping process
     soup = make_soup(artist_page)
+    if soup is None:
+        print(f"Skipping invalid artist page: {artist_page}")
+        return
+
     artist_info = get_artist_info(soup, artist_page)
     artist_name = artist_info['artist_name']
     artist_folder = sanitize_filename(artist_name)
@@ -338,7 +397,7 @@ def scrape_artist_page(artist_page):
 
             # Check if the post is already in the metadata
             if post_id in metadata:
-                print(f"Post {post_id} already downloaded. Skipping.")
+                #print(f"Post {post_id} already downloaded. Skipping.")
                 progress_bar.update(1)  # Update progress bar even if skipping a post
                 continue
 
@@ -366,6 +425,9 @@ def scrape_artist_page(artist_page):
         if next_page:
             artist_page = next_page
             soup = make_soup(artist_page)
+            if soup is None:
+                print(f"Skipping invalid artist page: {artist_page}")
+                break
             # Get the new post URLs for the next page
             post_urls = [urljoin(artist_page, tag.get('href')) for tag in soup.select('article.post-card > a, article.post-card--preview > a')]
             progress_bar.total += len(post_urls)  # Update the total count of posts
@@ -382,6 +444,25 @@ def scrape_artist_page(artist_page):
     print(f"Done! Files saved in {artist_folder_path}")
 
 
+
+def download_posts_from_artists(artist_list):
+    for artist_page in artist_list:
+        scrape_artist_page(artist_page)
+
+
 if __name__ == '__main__':
-    artist_page = 'https://kemono.party/patreon/user/8497568'
-    scrape_artist_page(artist_page)
+    # Step 1: Get cookies
+    session_id_cookie = fetch_session_id_cookie()
+
+    if session_id_cookie:
+        # Step 2: Log in
+        session = requests.Session()
+        session.cookies.set('session', session_id_cookie, domain='kemono.party')
+
+        # Step 3: Get favorite artists
+        favorite_artists = get_favorite_artists(session)
+
+        # Step 4: Rest of the program
+        # Your code here
+        download_posts_from_artists(favorite_artists)
+
