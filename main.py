@@ -17,6 +17,7 @@ metadata_filename = "metadata.json"
 stop_requested = False
 scraping_errors = []  # List to store scraping errors
 
+
 def handle_interrupt(signum, frame):
     global stop_requested
     if frame.f_code.co_name == 'get_artist_post_count':
@@ -82,7 +83,7 @@ def get_favorite_artists(session):
 
         # Extract the artist usernames from the JSON
         artist_list = []
-        print("Obtaining number of posts from creators...")
+
         for artist in favorites_data:
             service = artist['service']
             id = artist['id']
@@ -104,7 +105,8 @@ def get_favorite_artists(session):
 
 def clear_console(artist_name):
     os.system('cls' if os.name == 'nt' else 'clear')
-    print(f"Downloading posts from '{artist_name}'\n")
+    if artist_name:
+        print(f"Downloading posts from '{artist_name}'\n")
 
 
 def make_soup(url: str) -> BeautifulSoup:
@@ -285,7 +287,7 @@ def get_post_info(soup: BeautifulSoup, url: str) -> dict:
     return post_info
 
 
-def fetch_post_media(url: str, artist_folder: str):
+def fetch_post_media(url: str, artist_folder: str, artist_platform):
     global stop_requested
 
     soup = make_soup(url)
@@ -297,11 +299,16 @@ def fetch_post_media(url: str, artist_folder: str):
     post_title = post_info['post_title']
     post_date = post_info['post_date']
 
+    # Name of the folder that contains the whole post
     folder_name = f'{post_date}_{post_title}'
-    folder_name = sanitize_filename(folder_name)[:150]  # Truncate the folder name to fit within path length limitations
-    folder = os.path.join("Artists", artist_folder, folder_name)
 
-    os.makedirs(folder, exist_ok=True)  # Ensure the folder is created before anything else
+    # Truncate the folder name to fit within path length limitations
+    folder_name = sanitize_filename(folder_name)[:150]
+    folder = os.path.join("Artists", artist_folder, artist_platform, folder_name)
+
+    # Ensure the folder is created before anything else
+    # To avoid 'not found' errors
+    os.makedirs(folder, exist_ok=True)  
 
     media_tags = post_info['media_tags']
     download_tags = post_info['download_tags']
@@ -313,12 +320,14 @@ def fetch_post_media(url: str, artist_folder: str):
             media_url = urljoin(url, media_tag.get('href'))
             media_name = media_tag.get('download')
             if media_name is None:
-                media_name = media_url.split('/')[-1].split('?')[0]  # fallback to old method
+                # If there's no file name given
+                # in the webpage for the downloaded file
+                media_name = media_url.split('/')[-1].split('?')[0]
 
             media_name = sanitize_filename(unquote(media_name))
 
             # Truncate filename if it exceeds the maximum allowed length
-            max_filename_length = 180  # Adjust this value based on your requirements
+            max_filename_length = 180 
             if len(media_name) > max_filename_length:
                 media_name = media_name[:max_filename_length]
 
@@ -333,12 +342,14 @@ def fetch_post_media(url: str, artist_folder: str):
             download_url = urljoin(url, download_tag.get('href'))
             download_name = download_tag.get('download')
             if download_name is None:
-                download_name = download_url.split('/')[-1].split('?')[0]  # fallback to old method
+                # If there's no file name given
+                # in the webpage for the downloaded file
+                download_name = download_url.split('/')[-1].split('?')[0]  
 
             download_name = sanitize_filename(unquote(download_name))
 
             # Truncate filename if it exceeds the maximum allowed length
-            max_filename_length = 255  # Adjust this value based on your requirements
+            max_filename_length = 255  # Windows's max lenght
             if len(download_name) > max_filename_length:
                 download_name = download_name[:max_filename_length]
 
@@ -358,7 +369,7 @@ def fetch_post_media(url: str, artist_folder: str):
                 file_name = sanitize_filename(unquote(file_name))
 
                 # Truncate filename if it exceeds the maximum allowed length
-                max_filename_length = 255  # Adjust this value based on your requirements
+                max_filename_length = 255  # Windows's max lenght
                 if len(file_name) > max_filename_length:
                     file_name = file_name[:max_filename_length]
 
@@ -378,31 +389,17 @@ def fetch_post_media(url: str, artist_folder: str):
 
 
 def download(url: str, filename: str, folder: str):
-    try:
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-        file_path = os.path.join(folder, filename)
-        with open(file_path, 'wb') as file:
-            for chunk in response.iter_content(chunk_size=1024):
-                if chunk:
-                    file.write(chunk)
-        print(f"Downloaded {filename} from {url}")
-    except requests.exceptions.RequestException as e:
-        print(f"Failed to download {filename} from {url}")
-        print(f"Error message: {str(e)}")
+    response = requests.get(url, stream=True)
+    response.raise_for_status()
+    file_path = os.path.join(folder, filename)
+    with open(file_path, 'wb') as file:
+        for chunk in response.iter_content(chunk_size=1024):
+            if chunk:
+                file.write(chunk)
+    # print(f"Downloaded {filename} from {url}")
 
 
 def scrape_artist_page(artist_page):
-    stop_requested = False
-    artist_name = sanitize_filename(artist_page)
-
-    def handle_interrupt(signum, frame):
-        nonlocal stop_requested
-        stop_requested = True
-        print("\nInterrupt received. Will stop after the current file is downloaded.")
-
-    signal.signal(signal.SIGINT, handle_interrupt)
-
     # Load metadata before starting the scraping process
     soup = make_soup(artist_page)
     if soup is None:
@@ -410,8 +407,12 @@ def scrape_artist_page(artist_page):
         return
 
     artist_info = get_artist_info(soup, artist_page)
+    artist_name = sanitize_filename(artist_info['artist_name'])
     artist_folder = sanitize_filename(artist_info['artist_name'])
-    artist_folder_path = os.path.join("Artists", artist_folder)
+    artist_platform = sanitize_filename(artist_info['artist_platform'])
+
+    artist_folder_path = os.path.join("Artists", artist_folder, artist_platform)
+
     os.makedirs(artist_folder_path, exist_ok=True)
 
     # Load metadata
@@ -423,11 +424,10 @@ def scrape_artist_page(artist_page):
 
     print(f"Downloading posts from '{artist_name}'")
 
-    while True:
-        post_urls = [urljoin(artist_page, tag.get('href')) for tag in soup.select('article.post-card > a, article.post-card--preview > a')]
-        total_posts = len(post_urls)
-        progress_bar = tqdm(total=posts_to_download)  # Initiate progress bar with total posts count
+    post_urls = [urljoin(artist_page, tag.get('href')) for tag in soup.select('article.post-card > a, article.post-card--preview > a')]
+    progress_bar = tqdm(total=posts_to_download, initial=len(metadata), ncols=80)
 
+    while len(metadata) < total_posts:
         for index, post_url in enumerate(post_urls, start=1):
             post_id_match = re.search(r'(\d+)$', post_url)
             if post_id_match is None:
@@ -442,20 +442,15 @@ def scrape_artist_page(artist_page):
 
             # Otherwise, process the post
             try:
-                fetch_post_media(post_url, artist_folder)
+                fetch_post_media(post_url, artist_folder, artist_platform)
                 clear_console(artist_name)  # Clear console after downloading post
                 metadata[post_id] = True  # Add the post ID to the metadata
-
-                if stop_requested:
-                    print("Download stopped by user.")
-                    save_metadata(artist_folder_path, metadata)
-                    return
             except Exception as e:
                 print(f"Exception occurred while fetching media for post {post_url}: {e}")
                 scraping_errors.append((post_url, artist_folder_path, str(e)))
 
             progress_bar.update(1)  # Update progress bar after processing a post
-            progress_bar.set_postfix_str(f"Downloading post {len(metadata)}/{posts_to_download}")
+            progress_bar.set_postfix_str(f"Downloading post {len(metadata)}/{total_posts}")
 
         # Save metadata after each page
         save_metadata(artist_folder_path, metadata)
@@ -474,14 +469,10 @@ def scrape_artist_page(artist_page):
         else:
             break
 
-        # Close and recreate the progress bar with the updated total count
-        progress_bar.close()
-        progress_bar = tqdm(total=posts_to_download)
-        progress_bar.set_postfix_str(f"Downloading post {len(metadata)}/{posts_to_download}")
-
     progress_bar.close()
+
     clear_console(artist_name)
-    print(f"Finished downloading posts from '{artist_name}'")
+    # print(f"Finished downloading posts from '{artist_name}'")
 
 
 def get_artist_post_count(artist_page):
@@ -492,8 +483,9 @@ def get_artist_post_count(artist_page):
 
     artist_info = get_artist_info(soup, artist_page)
     artist_name = artist_info['artist_name']
+    artist_platform = artist_info['artist_platform']
     artist_folder = sanitize_filename(artist_name)
-    artist_folder_path = os.path.join("Artists", artist_folder)
+    artist_folder_path = os.path.join("Artists", artist_folder, artist_platform)
 
     # Load metadata
     metadata = load_metadata(artist_folder_path)
@@ -502,7 +494,7 @@ def get_artist_post_count(artist_page):
     total_posts = artist_info['number_of_posts']
     posts_to_download = total_posts - len(metadata)
 
-    print(f"Getting posts to download from {artist_name}")
+    # print(f"Getting posts to download from {artist_name}")
 
     return posts_to_download, artist_name
 
@@ -515,6 +507,9 @@ def download_posts_from_artists(artist_list):
     artists_with_new_posts = []
     artists_with_errors = []
 
+    # Create a progress bar for the total download progress
+    progress_bar_total = tqdm(total=len(artist_list), desc="Artists", leave=False, ncols=80)
+
     with ThreadPoolExecutor() as executor:
         results = executor.map(get_artist_post_count, artist_list)
         for posts_to_download, artist_name in results:
@@ -526,10 +521,15 @@ def download_posts_from_artists(artist_list):
                 print("Download stopped by user.")
                 return
 
+            progress_bar_total.update(1)  # Update the total progress bar
+
+    progress_bar_total.close()  # Close the total progress bar
+
     # If there are posts to download, print a prompt and wait for user input
     if total_posts_to_download > 0:
         proceed = input(f"{total_posts_to_download} posts from {len(artists_with_new_posts)} artists will be downloaded, continue? (Y/N): ")
         if proceed.lower() != 'y':
+            clear_console(None)
             return
 
         see_list = input("Do you want to see the list of artists whose posts will be downloaded? (Y/N): ")
@@ -537,17 +537,40 @@ def download_posts_from_artists(artist_list):
             print("Artists with new posts:")
             for artist_name in artists_with_new_posts:
                 print(f" - {artist_name}")
+        else:
+            clear_console(None)
     else:
         print("No posts to download!")
         return
+
+    # Create a progress bar for the current artist's posts
+    progress_bar_current = tqdm(total=total_posts_to_download, desc="Posts", leave=False, ncols=80)
 
     for artist_page in artist_list:
         if stop_requested:
             print("Download stopped by user.")
             return
         scrape_artist_page(artist_page)
+
+        # Update the current artist's progress in the total progress bar
+        progress_bar_total.set_postfix_str(f"Downloading from {sanitize_filename(artist_page)}")
+        clear_console(None)
+        progress_bar_total.update(1)
+
+        # Update the total progress bar and close the current progress bar
+        progress_bar_total.set_postfix_str("")
+        progress_bar_total.set_description("Artists", refresh=True)
+        progress_bar_current.close()
+
+        # Check if the artist had errors
         if len(os.listdir(os.path.join("Artists", sanitize_filename(artist_page)))) > 0:
             artists_with_errors.append(sanitize_filename(artist_page))
+
+        # Re-create the progress bar for the next artist's posts
+        progress_bar_current = tqdm(total=total_posts_to_download, desc="Posts", leave=False, ncols=80)
+        progress_bar_current.set_postfix_str(f"Downloading from {sanitize_filename(artist_page)}")
+
+    progress_bar_current.close()  # Close the current progress bar
 
     if artists_with_errors:
         print("Errors occurred while downloading posts from the following artists:")
@@ -567,6 +590,9 @@ if __name__ == '__main__':
 
         # Step 3: Get favorite artists
         favorite_artists = get_favorite_artists(session)
+        clear_console(None)
+        print("Calculating the number of posts to download...",
+              "This could take a while!\n")
 
         # Execute program
         download_posts_from_artists(favorite_artists)
