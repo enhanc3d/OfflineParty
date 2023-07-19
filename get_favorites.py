@@ -6,18 +6,20 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 from urllib.parse import urljoin, urlparse, urlunparse
 
+
 def fetch_favorite_artists(option):
+    # sourcery skip: extract-method, inline-variable, move-assign
     if option == "kemono":
         primary_cookie_domain = "kemono.party"
         fallback_cookie_domain = "kemono.su"
-        primary_favorites_json_url = 'https://kemono.party/api/v1/account/favorites'
-        fallback_favorites_json_url = 'https://kemono.su/api/v1/account/favorites'
+        JSON_url = 'https://kemono.party/api/v1/account/favorites'
+        JSON_fallback_url = 'https://kemono.su/api/v1/account/favorites'
         json_file = 'kemono_favorites.json'
     elif option == "coomer":
         primary_cookie_domain = "coomer.party"
         fallback_cookie_domain = "coomer.su"
-        primary_favorites_json_url = 'https://coomer.party/api/v1/account/favorites'
-        fallback_favorites_json_url = 'https://coomer.su/api/v1/account/favorites'
+        JSON_url = 'https://coomer.party/api/v1/account/favorites'
+        JSON_fallback_url = 'https://coomer.su/api/v1/account/favorites'
         json_file = 'coomer_favorites.json'
     else:
         print(f"Invalid option: {option}")
@@ -30,11 +32,11 @@ def fetch_favorite_artists(option):
     except FileNotFoundError:
         print("JSON file not found. It will be created after fetching data.")
 
-    old_favorites_dict = {artist['id']: artist for artist in old_favorites_data}
+    old_favorites = {artist['id']: artist for artist in old_favorites_data}
 
     for cookie_domain, favorites_json_url in [
-        (primary_cookie_domain, primary_favorites_json_url),
-        (fallback_cookie_domain, fallback_favorites_json_url),
+        (primary_cookie_domain, JSON_url),
+        (fallback_cookie_domain, JSON_fallback_url),
     ]:
         cj = browser_cookie3.load()
         session_id_cookie = next(
@@ -56,13 +58,16 @@ def fetch_favorite_artists(option):
         for attempt in range(1, retry_attempts + 1):
             try:
                 session = requests.Session()
-                session.cookies.set('session', session_id_cookie, domain=cookie_domain)
-                favorites_response = session.get(favorites_json_url, headers=headers)
+                session.cookies.set('session',
+                                    session_id_cookie,
+                                    domain=cookie_domain)
+                favorites_response = session.get(favorites_json_url,
+                                                 headers=headers)
                 favorites_response.raise_for_status()
                 break
             except requests.exceptions.RequestException as e:
                 print(e)
-                print(f"Error trying to connect to the server, retrying in {retry_delay} seconds")
+                print(f"Server error, retrying in {retry_delay} seconds")
                 time.sleep(retry_delay)
                 retry_delay *= 3
 
@@ -84,19 +89,21 @@ def fetch_favorite_artists(option):
                 updated = artist['updated']
 
                 new_posts = False
-                if artist_id in old_favorites_dict:
-                    old_updated = old_favorites_dict[artist_id]['updated']
+                if artist_id in old_favorites:
+                    old_updated = old_favorites[artist_id]['updated']
                     new_posts = old_updated != updated
                 else:
                     new_posts = True
 
                 if new_posts:
-                    artist_list.append(f'https://{cookie_domain}/{service}/user/{artist_id}')
-                    api_url_list.append(f'https://{cookie_domain}/api/{service}/user/{artist_id}?o=0')
+                    artist_list.append(
+                        f'https://{cookie_domain}/{service}/user/{artist_id}')
+                    api_url_list.append(
+                        f'https://{cookie_domain}/api/{service}/user/{artist_id}?o=0')
 
             return artist_list, api_url_list
 
-    print("Failed to fetch favorite artists from both primary and fallback URLs.")
+    print("Failed to fetch favorite artists from primary and fallback URLs.")
     return []
 
 
