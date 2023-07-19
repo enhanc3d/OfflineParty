@@ -1,2 +1,7 @@
 BeautifulSoup4
 pathvalidate
+browser_cookie3
+tqdm
+requests
+urllib3
+

@@ -1,4 +1,6 @@
-Artists
-latest_downloaded_posts.txt
-scraping_errors.txt
-latest_post_data.json
+__pycache__
+Creators
+old_functions
+download_errors.txt
+coomer_favorites.json
+kemono_favorites.json
