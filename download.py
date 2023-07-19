@@ -2,6 +2,8 @@ import os
 import sys
 import requests
 import json
+import argparse
+import glob
 from pathvalidate import sanitize_filename
 import get_favorites  # Import the updated get_favorites_updated.py script
 from tqdm import tqdm
@@ -135,19 +137,62 @@ def save_content_to_txt(folder_name, content):
         f.write(content)
 
 
-def main():
-    valid_options = ["kemono", "coomer", "both"]
-    user_option = input(f"Please enter your choice: ({', '.join(valid_options)}): ")
-    while user_option not in valid_options:
-        user_option = input(f"Invalid choice. Please enter your choice ({', '.join(valid_options)}): ")
-
-    options = [user_option] if user_option != "both" else ["kemono", "coomer"]
+def main(option):
+    options = [option] if option != "both" else ["kemono", "coomer"]
 
     for option in options:
         url_list = get_favorites.main(option)
-
         run_with_base_url(url_list)
 
 
+def delete_json_file(filename):
+    # Check if file exists
+    if os.path.exists(filename):
+        try:
+            os.remove(filename)
+            print(f"{filename} removed successfully")
+        except Exception:
+            print(f"Unable to delete {filename}")
+            print(Exception)
+    else:
+        print(f"No file found with the name {filename}")
+
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Download data from websites.")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-k',
+                       '--kemono',
+                       action='store_true',
+                       help="Download data from kemono")
+
+    group.add_argument('-c',
+                       '--coomer',
+                       action='store_true',
+                       help="Download data from coomer")
+
+    group.add_argument('-b',
+                       '--both',
+                       action='store_true',
+                       help="Download data from both sites")
+
+    parser.add_argument('-r',
+                        '--reset',
+                        action='store_true',
+                        help="Reset JSON files")
+
+    args = parser.parse_args()
+
+    if args.kemono:
+        if args.reset:
+            delete_json_file('kemono_favorites.json')
+        main("kemono")
+    elif args.coomer:
+        if args.reset:
+            delete_json_file('coomer_favorites.json')
+        main("coomer")
+    elif args.both:
+        if args.reset:
+            delete_json_file('kemono_favorites.json')
+            delete_json_file('coomer_favorites.json')
+        main("both")
