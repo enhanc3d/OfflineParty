@@ -3,10 +3,26 @@ import sys
 import requests
 import json
 import argparse
-import glob
 from pathvalidate import sanitize_filename
-import get_favorites  # Import the updated get_favorites_updated.py script
+import get_favorites
 from tqdm import tqdm
+
+
+def create_artist_id_to_name_mapping(json_file_path):
+    try:
+        with open(json_file_path, "r") as file:
+            data = json.load(file)
+        return {item["id"]: item["name"].capitalize() for item in data}
+    except FileNotFoundError:
+        print(f"No such file: {json_file_path}")
+        return {}
+    except json.JSONDecodeError:
+        print(f"Could not parse JSON file: {json_file_path}")
+        return {}
+
+
+def capitalize_folder_name(folder_name):
+    return folder_name.capitalize()
 
 
 def get_with_retry_and_fallback(url, retries=3,
@@ -69,7 +85,7 @@ def download_file(url, folder_name, file_name, artist_url):
         print(f"Downloading: {file_name}")
 
 
-def run_with_base_url(url_list):
+def run_with_base_url(url_list, artist_id_to_name):
     try:
         for url in tqdm(url_list, desc="Downloading pages..."):
             # Extract the domain, platform, and artist name from the URL
@@ -77,15 +93,16 @@ def run_with_base_url(url_list):
             domain = url_parts[2].split(".")[0]
             platform = url_parts[4]
             # Split the artist's name by the question mark
-            artist_name = url_parts[6].split("?")[0]
+            artist_id = url_parts[6].split("?")[0]
+            artist_name = artist_id_to_name.get(artist_id, artist_id)
 
             # Construct the folder structure
             artists_folder = "Creators"
-            domain_folder = os.path.join(artists_folder, domain)
+            domain_folder = os.path.join(artists_folder, capitalize_folder_name(domain))
             artist_folder = os.path.join(domain_folder,
-                                         sanitize_filename(artist_name))
+                                         capitalize_folder_name(sanitize_filename(artist_name)))
             platform_folder = os.path.join(artist_folder,
-                                           sanitize_filename(platform))
+                                           capitalize_folder_name(sanitize_filename(platform)))
 
             os.makedirs(platform_folder, exist_ok=True)
 
@@ -142,7 +159,8 @@ def main(option):
 
     for option in options:
         url_list = get_favorites.main(option)
-        run_with_base_url(url_list)
+    artist_id_to_name = create_artist_id_to_name_mapping("kemono_favorites.json")
+    run_with_base_url(url_list, artist_id_to_name)
 
 
 def delete_json_file(filename):
