@@ -1,13 +1,15 @@
 import os
 import sys
-import requests
 import json
+import requests
 import argparse
-from pathvalidate import sanitize_filename
+import html2text
 import get_favorites
 from tqdm import tqdm
+from pathvalidate import sanitize_filename
 
 
+# Map Kemono artist IDs to their names
 def create_artist_id_to_name_mapping(json_file_path):
     try:
         with open(json_file_path, "r") as file:
@@ -57,7 +59,7 @@ def download_file(url, folder_name, file_name, artist_url):
     # sourcery skip: extract-method
     folder_path = os.path.join(folder_name, file_name)
     if os.path.exists(folder_path):
-        print(f"Skipping download: {file_name} already exists in the folder.")
+        print(f"Skipping download: {file_name} already exists")
         return
 
     response = get_with_retry_and_fallback(url, stream=True)
@@ -113,7 +115,7 @@ def run_with_base_url(url_list, artist_id_to_name):
             # total_posts = sum(len(page_data) for page_data in data)
 
             for post_num, post in enumerate(data, start=1):
-                post_folder_name = sanitize_filename(post.get('title', ''))
+                post_folder_name = sanitize_filename(post.get('title')) if post.get('title') else sanitize_filename(post.get('published', ''))
                 post_folder_path = os.path.join(platform_folder,
                                                 post_folder_name)
                 os.makedirs(post_folder_path, exist_ok=True)
@@ -151,7 +153,7 @@ def run_with_base_url(url_list, artist_id_to_name):
 def save_content_to_txt(folder_name, content):
     folder_path = os.path.join(folder_name, "content.txt")
     with open(folder_path, 'w', encoding='utf-8') as f:
-        f.write(content)
+        f.write(html2text.html2text(content))
 
 
 def main(option):
