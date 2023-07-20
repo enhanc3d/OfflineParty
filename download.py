@@ -1,13 +1,15 @@
 import os
 import sys
-import requests
 import json
+import requests
 import argparse
-from pathvalidate import sanitize_filename
+import html2text
 import get_favorites
 from tqdm import tqdm
+from pathvalidate import sanitize_filename
 
 
+# Map Kemono artist IDs to their names
 def create_artist_id_to_name_mapping(json_file_path):
     try:
         with open(json_file_path, "r") as file:
@@ -151,7 +153,7 @@ def run_with_base_url(url_list, artist_id_to_name):
 def save_content_to_txt(folder_name, content):
     folder_path = os.path.join(folder_name, "content.txt")
     with open(folder_path, 'w', encoding='utf-8') as f:
-        f.write(content)
+        f.write(html2text.html2text(content))
 
 
 def main(option):
