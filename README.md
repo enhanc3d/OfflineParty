@@ -1,9 +1,9 @@
 
-# KemonoDL
+# OfflineParty
 
 ## Instructions: 
 
-1. [Download Repo](https://github.com/2000GHz/KemonoDL/archive/refs/heads/main.zip)
+1. [Download Repo](https://github.com/2000GHz/OfflineParty/archive/refs/heads/main.zip)
 2. Using the terminal, run 
 ```bash 
 pip install -r requirements.txt
