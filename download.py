@@ -158,11 +158,13 @@ def save_content_to_txt(folder_name, content):
 
 def main(option):
     options = [option] if option != "both" else ["kemono", "coomer"]
+    url_list = []
 
     for option in options:
-        url_list = get_favorites.main(option)
+        url_list.extend(get_favorites.main(option))
     artist_id_to_name = create_artist_id_to_name_mapping("kemono_favorites.json")
     run_with_base_url(url_list, artist_id_to_name)
+
 
 
 def delete_json_file(filename):
