@@ -163,9 +163,8 @@ def main(option):
 
     for option in options:
         url_list.extend(get_favorites.main(option))
-    artist_id_to_name = create_artist_id_to_name_mapping("kemono_favorites.json")
+    artist_id_to_name = create_artist_id_to_name_mapping("Config/kemono_favorites.json")
     run_with_base_url(url_list, artist_id_to_name)
-
 
 
 def delete_json_file(filename):
@@ -208,14 +207,14 @@ if __name__ == "__main__":
 
     if args.kemono:
         if args.reset:
-            delete_json_file('kemono_favorites.json')
+            delete_json_file('Config/kemono_favorites.json')
         main("kemono")
     elif args.coomer:
         if args.reset:
-            delete_json_file('coomer_favorites.json')
+            delete_json_file('Config/coomer_favorites.json')
         main("coomer")
     elif args.both:
         if args.reset:
-            delete_json_file('kemono_favorites.json')
-            delete_json_file('coomer_favorites.json')
+            delete_json_file('Config/kemono_favorites.json')
+            delete_json_file('Config/coomer_favorites.json')
         main("both")
