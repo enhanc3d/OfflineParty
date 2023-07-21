@@ -1,10 +1,8 @@
+
 import requests
 import time
 import browser_cookie3
 import json
-from bs4 import BeautifulSoup
-from tqdm import tqdm
-from urllib.parse import urljoin, urlparse, urlunparse
 
 
 def fetch_favorite_artists(option):
@@ -96,10 +94,16 @@ def fetch_favorite_artists(option):
                     new_posts = True
 
                 if new_posts:
-                    artist_list.append(
-                        f'https://{cookie_domain}/{service}/user/{artist_id}')
-                    api_url_list.append(
-                        f'https://{cookie_domain}/api/{service}/user/{artist_id}?o=0')
+                    api_base_url = f'https://{cookie_domain}/api/{service}/user/{artist_id}'
+                    offset = 0
+                    while True:
+                        api_url = f'{api_base_url}?o={offset}'
+                        response = session.get(api_url, headers=headers)
+                        if response.status_code == 200 and response.json():
+                            api_url_list.append(api_url)
+                            offset += 50
+                        else:
+                            break
 
             return artist_list, api_url_list
 
@@ -107,55 +111,14 @@ def fetch_favorite_artists(option):
     return []
 
 
-def make_soup(page):
-    response = requests.get(page)
-    return BeautifulSoup(response.text, 'html.parser')
-
-
-def get_next_page(artist_page):
-    soup = make_soup(artist_page)
-    if soup is None:
-        return None
-
-    next_link = soup.find('a', class_='next')
-
-    if next_link is not None:
-        href = next_link.get('href')
-        return urljoin(artist_page, href)
-    return None
-
-
-def get_all_pages(artist_url):
-    artist_pages = [artist_url]
-    next_page = get_next_page(artist_url)
-    while next_page is not None:
-        artist_pages.append(next_page)
-        next_page = get_next_page(next_page)
-    return artist_pages
-
-
-def add_api_header(pages):
-    api_pages = []
-    for page in pages:
-        url_parts = list(urlparse(page))
-        url_parts[2] = f"/api{url_parts[2]}"
-        api_pages.append(urlunparse(url_parts))
-    return api_pages
-
-
 def main(option):
-    favorite_artists, _ = fetch_favorite_artists(option)
-
-    api_pages_all_artists = []
-    for artist_url in tqdm(favorite_artists, desc="Processing artists..."):
-        all_pages = get_all_pages(artist_url)
-        api_pages = add_api_header(all_pages)
-        api_pages_all_artists.extend(api_pages)
+    _, api_pages_all_artists = fetch_favorite_artists(option)
 
     return api_pages_all_artists
 
 
 if __name__ == "__main__":
-    api_pages_all_artists = main()
-    for api_page in api_pages_all_artists:
-        print(api_page)
+    api_pages_all_artists = main("kemono")
+    # DEBUG
+    # for api_page in api_pages_all_artists:
+    #     print(api_page)
