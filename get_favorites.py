@@ -3,22 +3,24 @@ import requests
 import time
 import browser_cookie3
 import json
-
+import os
+from tqdm import tqdm
 
 def fetch_favorite_artists(option):
-    # sourcery skip: extract-method, inline-variable, move-assign
+    os.makedirs('Config', exist_ok=True)
+
     if option == "kemono":
         primary_cookie_domain = "kemono.party"
         fallback_cookie_domain = "kemono.su"
         JSON_url = 'https://kemono.party/api/v1/account/favorites'
         JSON_fallback_url = 'https://kemono.su/api/v1/account/favorites'
-        json_file = 'kemono_favorites.json'
+        json_file = 'Config/kemono_favorites.json'
     elif option == "coomer":
         primary_cookie_domain = "coomer.party"
         fallback_cookie_domain = "coomer.su"
         JSON_url = 'https://coomer.party/api/v1/account/favorites'
         JSON_fallback_url = 'https://coomer.su/api/v1/account/favorites'
-        json_file = 'coomer_favorites.json'
+        json_file = 'Config/coomer_favorites.json'
     else:
         print(f"Invalid option: {option}")
         return []
@@ -81,7 +83,7 @@ def fetch_favorite_artists(option):
             artist_list = []
             api_url_list = []
 
-            for artist in favorites_data:
+            for artist in tqdm(favorites_data, desc="Processing artists"):
                 service = artist['service']
                 artist_id = artist['id']
                 updated = artist['updated']

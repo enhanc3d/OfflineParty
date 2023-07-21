@@ -115,7 +115,8 @@ def run_with_base_url(url_list, artist_id_to_name):
             # total_posts = sum(len(page_data) for page_data in data)
 
             for post_num, post in enumerate(data, start=1):
-                post_folder_name = sanitize_filename(post.get('title')) if post.get('title') else sanitize_filename(post.get('published', ''))
+                post_folder_name = sanitize_filename(post.get('title') + "_" + sanitize_filename(post.get('published'))) if post.get('title') and post.get('published') else sanitize_filename(post.get('published', ''))
+
                 post_folder_path = os.path.join(platform_folder,
                                                 post_folder_name)
                 os.makedirs(post_folder_path, exist_ok=True)
@@ -162,9 +163,8 @@ def main(option):
 
     for option in options:
         url_list.extend(get_favorites.main(option))
-    artist_id_to_name = create_artist_id_to_name_mapping("kemono_favorites.json")
+    artist_id_to_name = create_artist_id_to_name_mapping("Config/kemono_favorites.json")
     run_with_base_url(url_list, artist_id_to_name)
-
 
 
 def delete_json_file(filename):
@@ -207,14 +207,14 @@ if __name__ == "__main__":
 
     if args.kemono:
         if args.reset:
-            delete_json_file('kemono_favorites.json')
+            delete_json_file('Config/kemono_favorites.json')
         main("kemono")
     elif args.coomer:
         if args.reset:
-            delete_json_file('coomer_favorites.json')
+            delete_json_file('Config/coomer_favorites.json')
         main("coomer")
     elif args.both:
         if args.reset:
-            delete_json_file('kemono_favorites.json')
-            delete_json_file('coomer_favorites.json')
+            delete_json_file('Config/kemono_favorites.json')
+            delete_json_file('Config/coomer_favorites.json')
         main("both")
