@@ -6,6 +6,7 @@ import json
 import os
 from tqdm import tqdm
 
+
 def fetch_favorite_artists(option):
     os.makedirs('Config', exist_ok=True)
 
@@ -77,8 +78,6 @@ def fetch_favorite_artists(option):
 
         if favorites_response.status_code == 200:
             favorites_data = favorites_response.json()
-            with open(json_file, 'w') as f:
-                json.dump(favorites_data, f, indent=4)
 
             artist_list = []
             api_url_list = []
@@ -107,6 +106,8 @@ def fetch_favorite_artists(option):
                         else:
                             break
 
+        with open(json_file, 'w') as f:
+            json.dump(favorites_data, f, indent=4)
             return artist_list, api_url_list
 
     print("Failed to fetch favorite artists from primary and fallback URLs.")
