@@ -1,6 +1,11 @@
 
 # OfflineParty
 
+## Prerequisites:
+
+1. Install Python (In Windows, install it from the Microsoft Store)
+2. Create a Kemono/Coomer account and/or log in with your default browser
+
 ## Instructions: 
 
 1. [Download Repo](https://github.com/2000GHz/OfflineParty/archive/refs/heads/main.zip)
