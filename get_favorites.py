@@ -6,7 +6,6 @@ import json
 import os
 from tqdm import tqdm
 
-
 def fetch_favorite_artists(option):
     os.makedirs('Config', exist_ok=True)
 
@@ -24,7 +23,7 @@ def fetch_favorite_artists(option):
         json_file = 'Config/coomer_favorites.json'
     else:
         print(f"Invalid option: {option}")
-        return []
+        return [], [], []
 
     old_favorites_data = {}
     try:
@@ -106,18 +105,16 @@ def fetch_favorite_artists(option):
                         else:
                             break
 
-        with open(json_file, 'w') as f:
-            json.dump(favorites_data, f, indent=4)
-            return artist_list, api_url_list
+            return artist_list, api_url_list, favorites_data
 
     print("Failed to fetch favorite artists from primary and fallback URLs.")
-    return []
+    return [], [], []
 
 
 def main(option):
-    _, api_pages_all_artists = fetch_favorite_artists(option)
-
-    return api_pages_all_artists
+    artist_list, api_pages_all_artists, favorites_data = fetch_favorite_artists(option)
+    print(api_pages_all_artists)
+    return [], api_pages_all_artists, favorites_data
 
 
 if __name__ == "__main__":
