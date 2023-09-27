@@ -1,4 +1,3 @@
-
 import requests
 import time
 import browser_cookie3
@@ -6,8 +5,36 @@ import json
 import os
 from tqdm import tqdm
 
+
+def create_directory(directory):
+    """
+    Creates the Config folder where JSON files are stored if
+    it doesn't exist.
+    """
+    os.makedirs(directory, exist_ok=True)
+
+
+def load_old_favorites_data(json_file):
+    """
+    Loads the existing JSON files for coomer or kemono, if they exist.
+    This is needed to understand if there are new posts
+    from our favorite creators.
+    """
+    old_favorites_data = {}
+    try:
+        with open(json_file, 'r') as f:
+            old_favorites_data = json.load(f)
+    except FileNotFoundError:
+        print("JSON file not found. It will be created after fetching data.")
+    return old_favorites_data
+
+
 def fetch_favorite_artists(option):
-    os.makedirs('Config', exist_ok=True)
+    """
+    Requests the list of favorite creators from the APIs
+    and extracts some useful data based on the specified option.
+    """
+    create_directory('Config')
 
     if option == "kemono":
         primary_cookie_domain = "kemono.party"
@@ -25,13 +52,7 @@ def fetch_favorite_artists(option):
         print(f"Invalid option: {option}")
         return [], [], []
 
-    old_favorites_data = {}
-    try:
-        with open(json_file, 'r') as f:
-            old_favorites_data = json.load(f)
-    except FileNotFoundError:
-        print("JSON file not found. It will be created after fetching data.")
-
+    old_favorites_data = load_old_favorites_data(json_file)
     old_favorites = {artist['id']: artist for artist in old_favorites_data}
 
     for cookie_domain, favorites_json_url in [
@@ -82,43 +103,62 @@ def fetch_favorite_artists(option):
             api_url_list = []
 
             for artist in tqdm(favorites_data, desc="Processing artists"):
-                service = artist['service']
-                artist_id = artist['id']
-                updated = artist['updated']
-
+                artist_id = artist['id']  # Extracts ID
                 new_posts = False
                 if artist_id in old_favorites:
                     old_updated = old_favorites[artist_id]['updated']
-                    new_posts = old_updated != updated
+                    updated = artist['updated']
+
+                    new_posts = old_updated != updated  # If the date of the post is different, we understand there are new posts
                 else:
                     new_posts = True
 
                 if new_posts:
-                    api_base_url = f'https://{cookie_domain}/api/{service}/user/{artist_id}'
-                    offset = 0
-                    while True:
-                        api_url = f'{api_base_url}?o={offset}'
-                        response = session.get(api_url, headers=headers)
-                        if response.status_code == 200 and response.json():
-                            api_url_list.append(api_url)
-                            offset += 50
-                        else:
-                            break
-
+                    service = artist['service']
+                    get_all_page_urls(cookie_domain,
+                                      service,
+                                      artist_id,
+                                      session,
+                                      headers,
+                                      api_url_list)
             return artist_list, api_url_list, favorites_data
+        """
+        Returns the list of artists, with 
+        """
 
     print("Failed to fetch favorite artists from primary and fallback URLs.")
     return [], [], []
 
 
+def get_all_page_urls(cookie_domain, service, artist_id, session, headers, api_url_list):
+    """
+    Get all API page URLs for a specific artist.
+    """
+    api_base_url = f'https://{cookie_domain}/api/{service}/user/{artist_id}'
+    offset = 0
+    while True:
+        api_url = f'{api_base_url}?o={offset}'
+        response = session.get(api_url, headers=headers)
+        if response.status_code != 200 or not response.json():
+            break
+
+        api_url_list.append(api_url)
+        offset += 50
+    
+    return api_url_list  # Move the return statement here, outside the loop
+
+
 def main(option):
+    """
+    Main function to fetch favorite artists.
+    """
     artist_list, api_pages_all_artists, favorites_data = fetch_favorite_artists(option)
-    print(api_pages_all_artists)
+    # debug -- print(api_pages_all_artists)
     return [], api_pages_all_artists, favorites_data
 
 
 if __name__ == "__main__":
-    api_pages_all_artists = main("kemono")
+    api_pages_all_artists = main("coomer")
     # DEBUG
     # for api_page in api_pages_all_artists:
     #     print(api_page)
