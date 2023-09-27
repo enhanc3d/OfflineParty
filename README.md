@@ -3,7 +3,7 @@
 
 ## Prerequisites:
 
-1. Install Python (In Windows, install it from the Microsoft Store)
+1. Install the required dependencies (Python and the modules it needs) using the install script matching your OS
 2. Create a Kemono/Coomer account and/or log in with your default browser
 
 ## Instructions: 
@@ -26,3 +26,5 @@ pip install -r requirements.txt
 This will download data from "kemono" and reset (delete) `kemono_favorites.json` file. You can use flags `-c`, `-b`, `-r` in a similar way.
 
 5. Enjoy!
+
+Also, it's my first time working with shell scripts, so if you have any problems do let me know, thanks! 
