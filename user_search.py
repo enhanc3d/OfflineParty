@@ -90,7 +90,7 @@ def main(username):
 
         print("User found in local data!")
         print(url)
-        return url
+        return get_list_of_user_urls(url)
     else:
         # If user not found, ask the user for next steps
         user_choice = input("User not found in local data. Would you like to:\n"
