@@ -43,6 +43,18 @@ def load_old_favorites_data(json_file):
     return old_favorites_data
 
 
+
+def create_session_with_cookies(primary_cookie_domain, fallback_cookie_domain):
+    session = requests.Session()
+    cj = browser_cookie3.load(domain=primary_cookie_domain)
+    if not cj:
+        cj = browser_cookie3.load(domain=fallback_cookie_domain)
+    session.cookies.update(cj)
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    return session, headers
+
 def fetch_favorite_artists(option):
     """
     Requests the list of favorite creators from the APIs
@@ -158,7 +170,7 @@ def get_all_page_urls(cookie_domain, service, artist_id, session, headers, api_u
 
         api_url_list.append(api_url)
         offset += 50
-    
+
     return api_url_list  # Move the return statement here, outside the loop
 
 
