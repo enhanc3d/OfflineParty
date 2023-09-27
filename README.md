@@ -9,7 +9,7 @@
 
 ## Instructions: 
 
-1. [Download Repo](https://github.com/2000GHz/OfflineParty/archive/refs/heads/main.zip)
+1. [Download the latest release](https://github.com/2000GHz/OfflineParty/releases) in your preferred format (.7z or .zip)
 
 2. Sign in to kemono.party or coomer.party (Or kemono.su / coomer.su)
 
