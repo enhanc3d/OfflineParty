@@ -6,12 +6,27 @@ import os
 from tqdm import tqdm
 
 
-def create_directory(directory):
+def create_config(directory):
     """
-    Creates the Config folder where JSON files are stored if
-    it doesn't exist.
+    Creates the Config folder if it doesn't exist and ensures
+    that 'kemono_favorites.json' and 'coomer_favorites.json' files
+    exist inside the folder with empty arrays [] as content.
     """
+    # Create the directory if it doesn't exist
     os.makedirs(directory, exist_ok=True)
+
+    # Check if 'kemono_favorites.json' exists, and create it with an empty array if not
+    kemono_file_path = os.path.join(directory, 'kemono_favorites.json')
+    if not os.path.exists(kemono_file_path):
+        with open(kemono_file_path, 'w') as kemono_file:
+            json.dump([], kemono_file)
+
+    # Check if 'coomer_favorites.json' exists, and create it with an empty array if not
+    coomer_file_path = os.path.join(directory, 'coomer_favorites.json')
+    if not os.path.exists(coomer_file_path):
+        with open(coomer_file_path, 'w') as coomer_file:
+            json.dump([], coomer_file)
+
 
 
 def load_old_favorites_data(json_file):
@@ -34,7 +49,7 @@ def fetch_favorite_artists(option):
     Requests the list of favorite creators from the APIs
     and extracts some useful data based on the specified option.
     """
-    create_directory('Config')
+    create_config('Config')
 
     if option == "kemono":
         primary_cookie_domain = "kemono.party"
