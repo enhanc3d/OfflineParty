@@ -28,7 +28,6 @@ def create_config(directory):
             json.dump([], coomer_file)
 
 
-
 def load_old_favorites_data(json_file):
     """
     Loads the existing JSON files for coomer or kemono, if they exist.
