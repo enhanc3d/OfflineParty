@@ -7,7 +7,7 @@ def lookup_and_save_user(url, data):
     """Look up the user in the provided data and save to the appropriate JSON file."""
     # Regular expression to extract domain, service, and user ID/name from URL
     # Change .party hardcode to allow .su domain
-    pattern = r'https://(?P<domain>\w+\.party)/api/(?P<service>\w+)/user/(?P<user_id>[\w\d]+)\?o=\d+'
+    pattern = r'https://(?P<domain>\w+\.party|su)/api/(?P<service>\w+)/user/(?P<user_id>[\w\d]+)\?o=\d+'
     if match := re.match(pattern, url):
         domain, service, user_id = match.groups()
         # debug -- print(f"Extracted from URL -> Domain: {domain}, Service: {service}, User ID: {user_id}")
