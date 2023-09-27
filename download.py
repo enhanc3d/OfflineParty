@@ -7,6 +7,7 @@ import html2text
 import get_favorites
 from tqdm import tqdm
 from pathvalidate import sanitize_filename
+from json_handling import lookup_and_save_user as save_artist_json
 
 
 # Map Kemono artist IDs to their names
@@ -87,7 +88,9 @@ def download_file(url, folder_name, file_name, artist_url):
         print(f"Downloading: {file_name}")
 
 
-def run_with_base_url(url_list, artist_id_to_name):
+def run_with_base_url(url_list, artist_id_to_name,json_file):
+    processed_users = set()  # Initialize an empty set to store processed users
+
     try:
         for url in tqdm(url_list, desc="Downloading pages..."):
             # Extract the domain, platform, and artist name from the URL
@@ -144,11 +147,25 @@ def run_with_base_url(url_list, artist_id_to_name):
                 content = post.get('content', '')
                 save_content_to_txt(post_folder_path, content)
 
-                # print(f"Post {post_num}/{total_posts}")
+                                # Extract the username from the URL
+                username = url.split('/')[-1].split('?')[0]
+                print(username, url)
 
-        return True
+                # Check if the username is not in the set of processed users
+                if username not in processed_users:
+                    print(f"Processing user: {username}")
+                    print("Saving artist to JSON")
+                    save_artist_json(url, json_file)
+                    # Add the username to the set of processed users
+                    processed_users.add(username)
+                else:
+                    print(f"User {username} already processed. Skipping.")
+                    continue
+
     except requests.exceptions.RequestException:
         return False
+
+    return True
 
 
 def save_content_to_txt(folder_name, content):
@@ -162,9 +179,11 @@ def main(option):
     url_list = []
 
     for option in options:
-        url_list.extend(get_favorites.main(option))
+        _, api_pages, json_file = get_favorites.main(option)
+        print(json_file)
+        url_list.extend(api_pages)
     artist_id_to_name = create_artist_id_to_name_mapping("Config/kemono_favorites.json")
-    run_with_base_url(url_list, artist_id_to_name)
+    run_with_base_url(url_list, artist_id_to_name, json_file)
 
 
 def delete_json_file(filename):
@@ -201,7 +220,7 @@ if __name__ == "__main__":
     parser.add_argument('-r',
                         '--reset',
                         action='store_true',
-                        help="Reset JSON files")
+                        help="Reset JSON file for selected flag")
 
     args = parser.parse_args()
 
