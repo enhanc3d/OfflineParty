@@ -18,11 +18,16 @@
     - `-c` or `--coomer`: Download data from coomer
     - `-b` or `--both`: Download data from both kemono and coomer
     - `-r` or `--reset`: Reset (delete) the specific JSON files before downloading
+
+4. Enjoy!
+
+## Example of use
+
 ```bash
    python3 download.py -k -r
 ```
-This will download data from "kemono" and reset (delete) `kemono_favorites.json` file. You can use flags `-c`, `-b`, `-r` in a similar way.
+This will reset the `kemono_favorites.json` file, you can use this if for example you accidentally deleted a file, or new ones got added (For example if someone contributted with a higher tier )
 
-4. Enjoy!
+You can use flags `-c`, `-b`, `-r` in a similar way.
 
 Also, it's my first time working with shell scripts, so if you have any problems do let me know, thanks! 
