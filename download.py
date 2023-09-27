@@ -8,6 +8,7 @@ import get_favorites
 from tqdm import tqdm
 from pathvalidate import sanitize_filename
 from json_handling import lookup_and_save_user as save_artist_json
+import user_search
 
 
 # Map Kemono artist IDs to their names
@@ -220,7 +221,11 @@ if __name__ == "__main__":
                        '--both',
                        action='store_true',
                        help="Download data from both sites")
-
+    group.add_argument('-u',
+                        '--user',
+                        type=str,
+                        metavar='USERNAME',
+                        help="Only download posts from a specific user")
     parser.add_argument('-r',
                         '--reset',
                         action='store_true',
@@ -236,9 +241,12 @@ if __name__ == "__main__":
         if args.reset:
             delete_json_file('Config/coomer_favorites.json')
         main("coomer")
+    elif args.user:
+        user = args.user if args.user else str(input("Please type the name of the creator: "))
+        user_search.main(user)
     elif args.both:
         if args.reset:
             delete_json_file('Config/kemono_favorites.json')
             delete_json_file('Config/coomer_favorites.json')
         main("both")
-    
+
