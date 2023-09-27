@@ -2,7 +2,6 @@ import json
 import re
 import get_favorites
 
-
 def input_and_transform_url():
     valid_url = False
 
@@ -26,6 +25,10 @@ def input_and_transform_url():
         else:
             print("Invalid input URL format. Please enter a valid URL.")
 
+def get_list_of_user_urls(url):
+    post_pages = get_favorites.get_all_page_urls(url)
+    print(post_pages)
+    return post_pages
 
 def main(username):
     # Define the file paths
@@ -85,11 +88,11 @@ def main(username):
         # Construct the URL
         url = f"https://{domain}/api/{service}/user/{artist_id}"
 
+        print("User found in local data!")
         print(url)
-        print("User found in local data.")
-        return
+        return url
     else:
-                # If user not found, ask the user for next steps
+        # If user not found, ask the user for next steps
         user_choice = input("User not found in local data. Would you like to:\n"
                             "1. Use data from get_favorites\n"
                             "2. Input the URL manually\n"
@@ -106,7 +109,7 @@ def main(username):
                 combined_data_2.extend(favorites_data)
             if kemono_data is not None:
                 combined_data_2.extend(kemono_data)
-            print(combined_data_2)
+            # print(combined_data_2)
 
             # Search for the username in the fetched data
             found_user = None
@@ -114,18 +117,21 @@ def main(username):
                 if user_data.get("id") == username:
                     found_user = user_data
                     print("User found in fetched data!")
-                else:
-                    print("User not found in fetched data either.")
-                    input_and_transform_url()
+                    # Return the URL instead of printing it
+                    print(url)
+                    return url
 
             # If not found, prompt for manual URL input as before
 
         elif user_choice == "2":
-            # Ask the user for input URL
-            input_and_transform_url()
+            # Return the URL obtained from manual input
+            return input_and_transform_url()
 
+# username = "alexapearl"
 
-username = "alexapearl"
+# Call the main function and get the URL
+# url = main(username)
 
-# First, try to search the user in the local files
-main(username)
+# Call get_list_of_user_urls with the obtained URL
+# if url:
+#     get_list_of_user_urls(url)
