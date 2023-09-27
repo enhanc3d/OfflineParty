@@ -1,34 +1,40 @@
 import json
-import subprocess
 import re
+import get_favorites
 
-def is_valid_input_url(url):
-    # Define a regular expression pattern to match allowed domains
-    allowed_domains = r"(coomer\.party|coomer\.su|kemono\.party|kemono\.su)"
 
-    # Define the expected input URL pattern
-    input_expected_pattern = f"https://({allowed_domains})/([^/]+)/user/([^/]+)"
+def input_and_transform_url():
+    valid_url = False
 
-    # Use regular expressions to validate the input URL
-    return re.match(input_expected_pattern, url)
+    while not valid_url:
+        # Ask the user for input URL
+        input_url = input("Please, input the URL of the artist, for example:\nhttps://coomer.party/onlyfans/user/otakugirl90\nhttps://kemono.party/patreon/user/81088374\nURL: ")
 
-def transform_url(url):
-    # Split the URL by '/'
-    url_parts = url.split('/')
+        # Define a regular expression pattern to match allowed domains
+        allowed_domains = r"(coomer\.party|coomer\.su|kemono\.party|kemono\.su)"
 
-    # Reassemble the desired URL
-    desired_url = '/'.join(url_parts[:6])  # Keep the first 6 parts
+        # Define the expected input URL pattern
+        input_expected_pattern = f"https://({allowed_domains})/([^/]+)/user/([^/]+)"
 
-    return desired_url
+        # Use regular expressions to validate the input URL
+        if re.match(input_expected_pattern, input_url):
+            # Transform the input URL
+            url_parts = input_url.split('/')
+            transformed_url = '/'.join(url_parts[:6])
+            print(transformed_url)
+            return transformed_url
+        else:
+            print("Invalid input URL format. Please enter a valid URL.")
+
 
 def main(username):
-
     # Define the file paths
     coomer_file_path = 'Config/coomer_favorites.json'
     kemono_file_path = 'Config/kemono_favorites.json'
 
     # Initialize variables to store JSON data
     coomer_json_data = None
+    print("Initializing data...")
     kemono_json_data = None
 
     # Load data from coomer_favorites.json
@@ -37,6 +43,7 @@ def main(username):
             coomer_json_data = json.load(coomer_file)
     except FileNotFoundError:
         print(f"File not found: {coomer_file_path}")
+        print("Error loading coomer data.")
 
     # Load data from kemono_favorites.json
     try:
@@ -44,9 +51,11 @@ def main(username):
             kemono_json_data = json.load(kemono_file)
     except FileNotFoundError:
         print(f"File not found: {kemono_file_path}")
+        print("Error loading kemono data.")
 
     # Initialize a list to store the combined data
     combined_data = []
+    print("Combining data...")
 
     # Check if data from both files is not None and append them to combined_data
     if coomer_json_data is not None:
@@ -76,23 +85,47 @@ def main(username):
         # Construct the URL
         url = f"https://{domain}/api/{service}/user/{artist_id}"
 
-        # print(f"Constructed URL for username={username}:\n")
         print(url)
+        print("User found in local data.")
+        return
     else:
-        print(f"Username '{username}' not found in the combined data.")
+                # If user not found, ask the user for next steps
+        user_choice = input("User not found in local data. Would you like to:\n"
+                            "1. Use data from get_favorites\n"
+                            "2. Input the URL manually\n"
+                            "Please enter your choice (1/2): ")
 
-        # Ask the user for input URL
-        input_url = input("Please, input the URL of the artist.\nFor example: https://coomer.party/onlyfans/user/otakugirl90 // https://kemono.party/patreon/user/81088374: ")
+        if user_choice == "1":
+            _, _, favorites_data = get_favorites.main("coomer")
+            _, _, kemono_data = get_favorites.main("kemono")
 
-        # Validate the user-provided input URL
-        if is_valid_input_url(input_url):
-            # Transform the input URL
-            transformed_url = transform_url(input_url)
+            combined_data_2 = []
+            # print("Combining data...")
 
-            # print(f"Transformed URL for input URL={input_url}:\n")
-            print(transformed_url)
-        else:
-            print("Invalid input URL format. Please enter a valid URL.")
+            if favorites_data is not None:
+                combined_data_2.extend(favorites_data)
+            if kemono_data is not None:
+                combined_data_2.extend(kemono_data)
+            print(combined_data_2)
 
-if __name__ == "__main__":
-    main("alexapearl")
+            # Search for the username in the fetched data
+            found_user = None
+            for user_data in combined_data:
+                if user_data.get("id") == username:
+                    found_user = user_data
+                    print("User found in fetched data!")
+                else:
+                    print("User not found in fetched data either.")
+                    input_and_transform_url()
+
+            # If not found, prompt for manual URL input as before
+
+        elif user_choice == "2":
+            # Ask the user for input URL
+            input_and_transform_url()
+
+
+username = "alexapearl"
+
+# First, try to search the user in the local files
+main(username)
