@@ -88,8 +88,10 @@ def download_file(url, folder_name, file_name, artist_url):
         print(f"Downloading: {file_name}")
 
 
-def run_with_base_url(url_list, artist_id_to_name,json_file):
+def run_with_base_url(url_list, artist_id_to_name, json_file):
     processed_users = set()  # Initialize an empty set to store processed users
+    current_artist = None  # Initialize a variable to keep track of the current artist
+    current_artist_url = None  # Initialize a variable to keep track of the current artist's URL
 
     try:
         for url in tqdm(url_list, desc="Downloading pages..."):
@@ -104,10 +106,8 @@ def run_with_base_url(url_list, artist_id_to_name,json_file):
             # Construct the folder structure
             artists_folder = "Creators"
             domain_folder = os.path.join(artists_folder, capitalize_folder_name(domain))
-            artist_folder = os.path.join(domain_folder,
-                                         capitalize_folder_name(sanitize_filename(artist_name)))
-            platform_folder = os.path.join(artist_folder,
-                                           capitalize_folder_name(sanitize_filename(platform)))
+            artist_folder = os.path.join(domain_folder, capitalize_folder_name(sanitize_filename(artist_name)))
+            platform_folder = os.path.join(artist_folder, capitalize_folder_name(sanitize_filename(platform)))
 
             os.makedirs(platform_folder, exist_ok=True)
 
@@ -120,8 +120,7 @@ def run_with_base_url(url_list, artist_id_to_name,json_file):
             for post_num, post in enumerate(data, start=1):
                 post_folder_name = sanitize_filename(post.get('title') + "_" + sanitize_filename(post.get('published'))) if post.get('title') and post.get('published') else sanitize_filename(post.get('published', ''))
 
-                post_folder_path = os.path.join(platform_folder,
-                                                post_folder_name)
+                post_folder_path = os.path.join(platform_folder, post_folder_name)
                 os.makedirs(post_folder_path, exist_ok=True)
 
                 base_url = "/".join(url.split("/")[:3])  # Extract the base URL
@@ -130,8 +129,7 @@ def run_with_base_url(url_list, artist_id_to_name,json_file):
                     attachment_url = base_url + attachment.get('path', '')
                     attachment_name = attachment.get('name', '')
                     if attachment_url and attachment_name:
-                        download_file(attachment_url, post_folder_path,
-                                      attachment_name, url)
+                        download_file(attachment_url, post_folder_path, attachment_name, url)
 
                 file_info = post.get('file')
                 if file_info and 'name' in file_info and 'path' in file_info:
@@ -139,33 +137,39 @@ def run_with_base_url(url_list, artist_id_to_name,json_file):
                     file_name = file_info['name']
 
                     if file_url and file_name:
-                        download_file(file_url,
-                                      post_folder_path,
-                                      file_name,
-                                      url)
+                        download_file(file_url, post_folder_path, file_name, url)
 
                 content = post.get('content', '')
                 save_content_to_txt(post_folder_path, content)
 
-                                # Extract the username from the URL
+                # Extract the username from the URL
                 username = url.split('/')[-1].split('?')[0]
-                print(username, url)
 
                 # Check if the username is not in the set of processed users
                 if username not in processed_users:
-                    print(f"Processing user: {username}")
-                    print("Saving artist to JSON")
-                    save_artist_json(url, json_file)
+                    # Check if the current artist is different from the previous one
+                    if artist_name != current_artist:
+                        print(f"Processing user: {username}")
+                        current_artist_url = url  # Update the current artist's URL
+                    else:
+                        print(f"User {username} already processed. Skipping.")
+
+                    # Update the current artist
+                    current_artist = artist_name
+
                     # Add the username to the set of processed users
                     processed_users.add(username)
-                else:
-                    print(f"User {username} already processed. Skipping.")
-                    continue
 
     except requests.exceptions.RequestException:
         return False
 
+    # After processing all pages for the current artist, call save_artist_json
+    if current_artist_url:
+        print("Saving artist to JSON")
+        save_artist_json(current_artist_url, json_file)
+
     return True
+
 
 
 def save_content_to_txt(folder_name, content):
@@ -180,7 +184,7 @@ def main(option):
 
     for option in options:
         _, api_pages, json_file = get_favorites.main(option)
-        print(json_file)
+        # debug -- print(json_file)
         url_list.extend(api_pages)
     artist_id_to_name = create_artist_id_to_name_mapping("Config/kemono_favorites.json")
     run_with_base_url(url_list, artist_id_to_name, json_file)
@@ -237,3 +241,4 @@ if __name__ == "__main__":
             delete_json_file('Config/kemono_favorites.json')
             delete_json_file('Config/coomer_favorites.json')
         main("both")
+    
