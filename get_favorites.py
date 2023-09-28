@@ -125,7 +125,6 @@ def fetch_favorite_artists(option):
         if favorites_response.status_code == 200:
             favorites_data = favorites_response.json()
 
-            artist_list = []
             api_url_list = []
 
             for artist in tqdm(favorites_data, desc="Processing artists"):
@@ -147,13 +146,16 @@ def fetch_favorite_artists(option):
                                       session,
                                       headers,
                                       api_url_list)
-            return artist_list, api_url_list, favorites_data
+                   # print("----------------------- ARTIST LIST --------------------------\n", artist_list)
+                    print("----------------------- API URL LIST --------------------------\n", api_url_list)
+                    print("----------------------- FAVORITES DATA --------------------------\n", favorites_data)
+            return api_url_list, favorites_data
         """
         Returns the list of artists, with 
         """
 
     print("Failed to fetch favorite artists from primary and fallback URLs.")
-    return [], [], []
+    return [], []
 
 
 def get_all_page_urls(cookie_domain, service, artist_id, session, headers, api_url_list):
@@ -178,9 +180,9 @@ def main(option):
     """
     Main function to fetch favorite artists.
     """
-    artist_list, api_pages_all_artists, favorites_data = fetch_favorite_artists(option)
+    api_pages_all_artists, favorites_data = fetch_favorite_artists(option)
     # debug -- print(api_pages_all_artists)
-    return [], api_pages_all_artists, favorites_data
+    return api_pages_all_artists, favorites_data
 
 
 if __name__ == "__main__":
