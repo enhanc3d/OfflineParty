@@ -165,6 +165,7 @@ def run_with_base_url(url_list, artist_id_to_name, json_file):
     # After processing all pages for the current artist, call save_artist_json
     if current_artist_url:
         print("Saving artist to JSON")
+        # debug -- print(current_artist_url, json_file)
         save_artist_json(current_artist_url, json_file)
 
     return True
