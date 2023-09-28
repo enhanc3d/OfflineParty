@@ -95,7 +95,7 @@ def run_with_base_url(url_list, artist_id_to_name, json_file):
             # Extract the domain, platform, and artist name from the URL
             url_parts = url.split("/")
             if len(url_parts) < 7:
-                print(f"Unexpected URL structure: {url}")
+                # Commented until resolved -- print(f"Unexpected URL structure: {url}")
                 continue
             domain = url_parts[2].split(".")[0].capitalize()
             service = url_parts[4].capitalize()
