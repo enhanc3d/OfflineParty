@@ -3,7 +3,23 @@ import time
 import browser_cookie3
 import json
 import os
+import sys
 from tqdm import tqdm
+
+
+def safe_print(text):
+    try:
+        # Try to print the text as UTF-8
+        sys.stdout.buffer.write(text.encode('utf-8'))
+        sys.stdout.buffer.write(b'\n')
+    except UnicodeEncodeError:
+        # Handle characters that cannot be encoded
+        for char in text:
+            try:
+                sys.stdout.buffer.write(char.encode('utf-8'))
+            except UnicodeEncodeError:
+                sys.stdout.buffer.write(b'?')  # Replace unencodable characters with a placeholder
+        sys.stdout.buffer.write(b'\n')
 
 
 def create_config(directory):
@@ -144,9 +160,11 @@ def fetch_favorite_artists(option):
                                       service,
                                       artist_id,
                                       api_url_list)
-                   # print("----------------------- ARTIST LIST --------------------------\n", artist_list)
                     print("----------------------- API URL LIST --------------------------\n", api_url_list)
-                    print("----------------------- FAVORITES DATA --------------------------\n", favorites_data)
+                    safe_print("----------------------- FAVORITES DATA --------------------------")
+                    for item in favorites_data:
+                        safe_print(str(item))
+
             return api_url_list, favorites_data
         """
         Returns the list of artists, with 
