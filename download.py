@@ -8,7 +8,7 @@ import get_favorites
 from tqdm import tqdm
 from pathvalidate import sanitize_filename
 from json_handling import lookup_and_save_user as save_artist_json
-import user_search
+from user_search import main as user_search_main
 
 
 # Map Kemono artist IDs to their names
@@ -238,8 +238,9 @@ if __name__ == "__main__":
 
     elif args.user:
         user = args.user if args.user else str(input("Please type the name of the creator: "))
-        username, json_file_path, url = user_search.main(user)
-        run_with_base_url(user_search.main(user))
+        url, username, json_file_path,  = user_search_main(user)
+        artist_id_to_name = create_artist_id_to_name_mapping("Config/kemono_favorites.json")
+        run_with_base_url(url, artist_id_to_name, json_file_path)
     elif args.both:
         if args.reset:
             delete_json_file('Config/kemono_favorites.json')
