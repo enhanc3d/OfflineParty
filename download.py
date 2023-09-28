@@ -246,7 +246,7 @@ if __name__ == "__main__":
         # DEBUG print("-------------------Username----------------------\n",username)
         # DEBUG print("-------------------json_file_path----------------------\n",json_file_path)
         artist_id_to_name = create_artist_id_to_name_mapping("Config/kemono_favorites.json")
-        run_with_base_url([url], artist_id_to_name, json_file_path)
+        run_with_base_url(url, artist_id_to_name, json_file_path)
     elif args.both:
         if args.reset:
             delete_json_file('Config/kemono_favorites.json')
