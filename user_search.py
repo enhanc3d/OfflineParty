@@ -136,7 +136,7 @@ def main(username):
                     # Construct the URL
                     url = f"https://{domain}/api/{found_user.get('service')}/user/{found_user.get('id')}"
                     print(url)
-                    return username, json_file_path, url
+                    return url, username, json_file_path
 
             # If not found, prompt for manual URL input as before
             return username, None, input_and_transform_url()    # MODIFY
