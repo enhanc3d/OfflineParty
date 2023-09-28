@@ -2,6 +2,9 @@ import json
 import re
 import get_favorites
 
+# Define a flag to indicate whether the URL has been found
+url_found = False
+
 def input_and_transform_url():
     valid_url = False
 
@@ -27,17 +30,19 @@ def input_and_transform_url():
 
 
 def get_list_of_user_urls(domain, service, artist_id, url):
-    # we need to extract service and artist_id, url is = to api_url_list after processing
-    url = [url] # Convert to list for compatibility
-    post_pages = get_favorites.get_all_page_urls(domain,
-                                                 service,
-                                                 artist_id,
-                                                 url)
-    # debug -- get the fetched creator pages -- print(post_pages)
+    global url_found  # Use the global flag
+    url = [url]  # Convert to list for compatibility
+    post_pages = get_favorites.get_all_page_urls(domain, service, artist_id, url)
+
+    # Check if the URL was found and set the flag accordingly
+    
+
     return post_pages
 
 
 def main(username):
+    global url_found  # Use the global flag
+
     # Define the file paths
     coomer_file_path = 'Config/coomer_favorites.json'
     kemono_file_path = 'Config/kemono_favorites.json'
@@ -99,8 +104,10 @@ def main(username):
         print(url)
         print("Obtaining all pages from the artist to proceed... this might take a while.")
 
-        # Return the additional information as a tuple
+        # Set the flag to indicate URL found and exit the function
+        url_found = True
         return get_list_of_user_urls(domain, service, artist_id, url), username, json_file_path
+
     else:
         # If user not found, ask the user for next steps
         user_choice = input("User not found in local data. Would you like to:\n"
@@ -109,23 +116,21 @@ def main(username):
                             "Please enter your choice (1/2): ")
 
         if user_choice == "1":
-            _, favorites_data = get_favorites.main("coomer")
+            _, coomer_data = get_favorites.main("coomer")
             _, kemono_data = get_favorites.main("kemono")
 
             combined_data_2 = []
 
-            if favorites_data is not None:
-                combined_data_2.extend(favorites_data)
+            if coomer_data is not None:
+                combined_data_2.extend(coomer_data)
             if kemono_data is not None:
                 combined_data_2.extend(kemono_data)
 
-            # Search for the username in the fetched data
             found_user = None
             for user_data in combined_data_2:
                 if user_data.get("name").lower() == username.lower():
                     found_user = user_data
                     print("User found in fetched data!")
-                    # Determine the domain and JSON file path
                     id_value = found_user.get("id")
                     if id_value.isdigit():
                         domain = "kemono.party"
@@ -133,22 +138,21 @@ def main(username):
                     else:
                         domain = "coomer.party"
                         json_file_path = coomer_file_path
-                    # Construct the URL
                     url = f"https://{domain}/api/{found_user.get('service')}/user/{found_user.get('id')}"
+                    service = found_user.get('service')
+                    artist_id = found_user.get('id')
                     print(url)
-                    return url, username, json_file_path
+                    # Set the flag to indicate URL found and exit the function
+                    url_found = True              
+                    return get_list_of_user_urls(domain, service, artist_id, url), username, json_file_path
 
-            # If not found, prompt for manual URL input as before
-            return username, None, input_and_transform_url()    # MODIFY
+            return input_and_transform_url(), username, None
 
         elif user_choice == "2":
-            # Return the URL obtained from manual input and indicate no JSON file path
             url = input_and_transform_url()
-            return username, None, url # MODIFY
+            # Set the flag to indicate URL found and exit the function
+            url_found = True
+            return url, username, None
 
 # Example usage:
 # main("alexapearl")
-# print(f"Username: {username}")
-# if json_file_path:
-#     print(f"JSON File Path: {json_file_path}")
-# print(f"API URL: {url}")
