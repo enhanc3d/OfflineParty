@@ -25,10 +25,17 @@ def input_and_transform_url():
         else:
             print("Invalid input URL format. Please enter a valid URL.")
 
-def get_list_of_user_urls(url):
-    post_pages = get_favorites.get_all_page_urls(url)
-    print(post_pages)
+
+def get_list_of_user_urls(domain, service, artist_id, url):
+    # we need to extract service and artist_id, url is = to api_url_list after processing
+    url = [url] # Convert to list for compatibility
+    post_pages = get_favorites.get_all_page_urls(domain,
+                                                 service,
+                                                 artist_id,
+                                                 url)
+    # debug -- get the fetched creator pages -- print(post_pages)
     return post_pages
+
 
 def main(username):
     # Define the file paths
@@ -37,7 +44,6 @@ def main(username):
 
     # Initialize variables to store JSON data
     coomer_json_data = None
-    print("Initializing data...")
     kemono_json_data = None
 
     # Load data from coomer_favorites.json
@@ -58,7 +64,6 @@ def main(username):
 
     # Initialize a list to store the combined data
     combined_data = []
-    print("Combining data...")
 
     # Check if data from both files is not None and append them to combined_data
     if coomer_json_data is not None:
@@ -90,17 +95,18 @@ def main(username):
 
         print("User found in local data!")
         print(url)
-        return get_list_of_user_urls(url)
+        print("Obtaining all pages from the artist to proceed... this might take a while.")
+        return get_list_of_user_urls(domain, service, artist_id, url)
     else:
         # If user not found, ask the user for next steps
         user_choice = input("User not found in local data. Would you like to:\n"
-                            "1. Use data from get_favorites\n"
+                            "1. Use data from your favorites?\n"
                             "2. Input the URL manually\n"
                             "Please enter your choice (1/2): ")
 
         if user_choice == "1":
-            _, _, favorites_data = get_favorites.main("coomer")
-            _, _, kemono_data = get_favorites.main("kemono")
+            _, favorites_data = get_favorites.main("coomer")
+            _, kemono_data = get_favorites.main("kemono")
 
             combined_data_2 = []
             # print("Combining data...")
@@ -130,8 +136,4 @@ def main(username):
 # username = "alexapearl"
 
 # Call the main function and get the URL
-# url = main(username)
-
-# Call get_list_of_user_urls with the obtained URL
-# if url:
-#     get_list_of_user_urls(url)
+# main("alexapearl")
