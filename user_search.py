@@ -184,10 +184,44 @@ def main(username):
             return get_list_of_user_urls(domain, service, artist_id, transformed_input_url), username, json_file_path
 
         elif user_choice == "2":
-            url = input_and_transform_url()
-            # Set the flag to indicate URL found and exit the function
-            url_found = True
-            return url, username, None
+            transformed_input_url = input_and_transform_url()
+
+            def extract_info(url):
+                # Define regular expressions for extracting domain, service, and id
+                domain_pattern = r"https://(.*?)/"
+                service_pattern = r"/([^/]+)/user/"
+                id_pattern = r"user/([^?]+)"
+
+                # Extract domain, service, and id using regular expressions
+                domain_match = re.search(domain_pattern, url)
+                service_match = re.search(service_pattern, url)
+                id_match = re.search(id_pattern, url)
+
+                if domain_match and service_match and id_match:
+                    domain = domain_match.group(1)
+                    service = service_match.group(1)
+                    artist_id = id_match.group(1)
+
+                    # Initialize username as None
+                    username = None
+
+                    if "coomer" in domain:
+                        json_file_path = coomer_json_file_path
+                        json_file_path = coomer_json_file_path
+                        username = artist_id
+                    else:
+                        json_file_path = kemono_json_file_path
+                        # Load the website and parse HTML to find the username
+                        response = requests.get(url)
+                        if response.status_code == 200:
+                            soup = BeautifulSoup(response.content, 'html.parser')
+                            meta_tag = soup.find('meta', attrs={'name': 'artist_name', 'content': True})
+                            if meta_tag:
+                                username = meta_tag['content']
+                    return domain, service, artist_id, username, json_file_path
+
+            domain, service, artist_id, username, json_file_path = extract_info(transformed_input_url)
+            return get_list_of_user_urls(domain, service, artist_id, transformed_input_url), username, json_file_path
 
 # Example usage:
 # main("alexapearl")
