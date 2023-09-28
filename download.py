@@ -99,16 +99,15 @@ def run_with_base_url(url_list, artist_id_to_name, json_file):
             # Extract the domain, platform, and artist name from the URL
             url_parts = url.split("/")
             domain = url_parts[2].split(".")[0]
-            platform = url_parts[4]
-            # Split the artist's name by the question mark
-            artist_id = url_parts[6].split("?")[0]
+            service = url_parts[4]
+            artist_id = url_parts[6].split("?")[0] # Split the artist's name by the question mark
             artist_name = artist_id_to_name.get(artist_id, artist_id)
 
             # Construct the folder structure
             artists_folder = "Creators"
             domain_folder = os.path.join(artists_folder, capitalize_folder_name(domain))
             artist_folder = os.path.join(domain_folder, capitalize_folder_name(sanitize_filename(artist_name)))
-            platform_folder = os.path.join(artist_folder, capitalize_folder_name(sanitize_filename(platform)))
+            platform_folder = os.path.join(artist_folder, capitalize_folder_name(sanitize_filename(service)))
 
             os.makedirs(platform_folder, exist_ok=True)
 
@@ -172,7 +171,6 @@ def run_with_base_url(url_list, artist_id_to_name, json_file):
     return True
 
 
-
 def save_content_to_txt(folder_name, content):
     folder_path = os.path.join(folder_name, "content.txt")
     with open(folder_path, 'w', encoding='utf-8') as f:
@@ -184,7 +182,7 @@ def main(option):
     url_list = []
 
     for option in options:
-        _, api_pages, json_file = get_favorites.main(option)
+        api_pages, json_file = get_favorites.main(option)
         # debug -- print(json_file)
         url_list.extend(api_pages)
     artist_id_to_name = create_artist_id_to_name_mapping("Config/kemono_favorites.json")
@@ -241,6 +239,7 @@ if __name__ == "__main__":
         if args.reset:
             delete_json_file('Config/coomer_favorites.json')
         main("coomer")
+        
     elif args.user:
         user = args.user if args.user else str(input("Please type the name of the creator: "))
         user_search.main(user)
