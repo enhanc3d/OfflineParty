@@ -25,10 +25,6 @@ def create_artist_id_to_name_mapping(json_file_path):
         return {}
 
 
-def capitalize_folder_name(folder_name):
-    return folder_name.capitalize()
-
-
 def get_with_retry_and_fallback(url, retries=3,
                                 fallback_tld=".su",
                                 stream=False):
@@ -95,19 +91,19 @@ def run_with_base_url(url_list, artist_id_to_name, json_file):
     current_artist_url = None  # Initialize a variable to keep track of the current artist's URL
 
     try:
-        for url in tqdm(url_list, desc="Downloading pages..."):
+        for url in tqdm(url_list, desc="Downloading pages..."): # Wrong number of pages from artist being shown
             # Extract the domain, platform, and artist name from the URL
             url_parts = url.split("/")
-            domain = url_parts[2].split(".")[0]
-            service = url_parts[4]
+            domain = url_parts[2].split(".")[0].capitalize()
+            service = url_parts[4].capitalize()
             artist_id = url_parts[6].split("?")[0] # Split the artist's name by the question mark
-            artist_name = artist_id_to_name.get(artist_id, artist_id)
+            artist_name = artist_id_to_name.get(artist_id, artist_id).capitalize()
 
             # Construct the folder structure
             artists_folder = "Creators"
-            domain_folder = os.path.join(artists_folder, capitalize_folder_name(domain))
-            artist_folder = os.path.join(domain_folder, capitalize_folder_name(sanitize_filename(artist_name)))
-            platform_folder = os.path.join(artist_folder, capitalize_folder_name(sanitize_filename(service)))
+            domain_folder = os.path.join(artists_folder, domain)
+            artist_folder = os.path.join(domain_folder, (sanitize_filename(artist_name)))
+            platform_folder = os.path.join(artist_folder, sanitize_filename(service))
 
             os.makedirs(platform_folder, exist_ok=True)
 
@@ -242,7 +238,7 @@ if __name__ == "__main__":
         
     elif args.user:
         user = args.user if args.user else str(input("Please type the name of the creator: "))
-        user_search.main(user)
+        run_with_base_url(user_search.main(user))
     elif args.both:
         if args.reset:
             delete_json_file('Config/kemono_favorites.json')
