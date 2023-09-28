@@ -1,4 +1,3 @@
-
 import re
 import json
 
@@ -7,15 +6,19 @@ def lookup_and_save_user(url, data):
     """Look up the user in the provided data and save to the appropriate JSON file."""
     # Regular expression to extract domain, service, and user ID/name from URL
     # Change .party hardcode to allow .su domain
-    pattern = r'https://(?P<domain>\w+\.party|su)/api/(?P<service>\w+)/user/(?P<user_id>[\w\d]+)\?o=\d+'
+    pattern = r'https://(?P<domain>\w+\.(?:party|su))/api/(?P<service>[\w/]+)/(?P<user_id>[\w\d]+)(\?o=\d+)?'
     if match := re.match(pattern, url):
-        domain, service, user_id = match.groups()
-        # debug -- print(f"Extracted from URL -> Domain: {domain}, Service: {service}, User ID: {user_id}")
+        # Extract individual groups for debugging
+        domain = match.group('domain')
+        service = match.group('service')
+        user_id = match.group('user_id')
+
+        print(f"Extracted from URL -> Domain: {domain}, Service: {service}, User ID: {user_id}")
 
         if user_data := next(
             (item for item in data if item.get('id') == user_id), None
         ):
-            print(f"Found user in provided data: {user_data}")
+            # debug -- print(f"Found user in provided data: {user_id}")
 
             # Save to the appropriate JSON file
             if domain == "coomer.party":
@@ -74,3 +77,9 @@ def save_to_kemono_favorites(data):
         file.seek(0)  # Go to the beginning of the file
         json.dump(existing_data, file, indent=4)
         file.truncate()  # Remove any remaining old content after this point
+
+
+# Example usage:
+# url = "https://coomer.party/api/onlyfans/user/astolfitoliz"
+# data = [{'faved_seq': 'UNKNOWN', 'id': 'astolfitoliz', 'indexed': 'UNKNOWN', 'last_imported': 'UNKNOWN', 'name': 'astolfitoliz', 'service': 'onlyfans', 'updated': 'UNKNOWN'}]  # Example data
+# lookup_and_save_user(url, data)
