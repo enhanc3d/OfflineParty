@@ -74,7 +74,7 @@ def main(username):
     # Search for the username in the combined data and print the corresponding dictionary
     found_user = None
     for user_data in combined_data:
-        if user_data.get("id") == username:
+        if user_data.get("name").lower() == username.lower():
             found_user = user_data
             break
 
@@ -122,7 +122,7 @@ def main(username):
             # Search for the username in the fetched data
             found_user = None
             for user_data in combined_data_2:
-                if user_data.get("id") == username:
+                if user_data.get("name").lower() == username.lower():
                     found_user = user_data
                     print("User found in fetched data!")
                     # Determine the domain and JSON file path
