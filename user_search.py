@@ -83,8 +83,10 @@ def main(username):
         id_value = found_user.get("id")
         if id_value.isdigit():
             domain = "kemono.party"
+            json_file_path = kemono_file_path
         else:
             domain = "coomer.party"
+            json_file_path = coomer_file_path
 
         # Extract relevant data from the found_user dictionary
         service = found_user.get("service")
@@ -96,7 +98,9 @@ def main(username):
         print("User found in local data!")
         print(url)
         print("Obtaining all pages from the artist to proceed... this might take a while.")
-        return get_list_of_user_urls(domain, service, artist_id, url)
+
+        # Return the additional information as a tuple
+        return get_list_of_user_urls(domain, service, artist_id, url), username, json_file_path
     else:
         # If user not found, ask the user for next steps
         user_choice = input("User not found in local data. Would you like to:\n"
@@ -109,31 +113,42 @@ def main(username):
             _, kemono_data = get_favorites.main("kemono")
 
             combined_data_2 = []
-            # print("Combining data...")
 
             if favorites_data is not None:
                 combined_data_2.extend(favorites_data)
             if kemono_data is not None:
                 combined_data_2.extend(kemono_data)
-            # print(combined_data_2)
 
             # Search for the username in the fetched data
             found_user = None
-            for user_data in combined_data:
+            for user_data in combined_data_2:
                 if user_data.get("id") == username:
                     found_user = user_data
                     print("User found in fetched data!")
-                    # Return the URL instead of printing it
+                    # Determine the domain and JSON file path
+                    id_value = found_user.get("id")
+                    if id_value.isdigit():
+                        domain = "kemono.party"
+                        json_file_path = kemono_file_path
+                    else:
+                        domain = "coomer.party"
+                        json_file_path = coomer_file_path
+                    # Construct the URL
+                    url = f"https://{domain}/api/{found_user.get('service')}/user/{found_user.get('id')}"
                     print(url)
-                    return url
+                    return username, json_file_path, url
 
             # If not found, prompt for manual URL input as before
+            return username, None, input_and_transform_url()    # MODIFY
 
         elif user_choice == "2":
-            # Return the URL obtained from manual input
-            return input_and_transform_url()
+            # Return the URL obtained from manual input and indicate no JSON file path
+            url = input_and_transform_url()
+            return username, None, url # MODIFY
 
-# username = "alexapearl"
-
-# Call the main function and get the URL
+# Example usage:
 # main("alexapearl")
+# print(f"Username: {username}")
+# if json_file_path:
+#     print(f"JSON File Path: {json_file_path}")
+# print(f"API URL: {url}")
