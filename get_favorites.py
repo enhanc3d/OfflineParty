@@ -143,8 +143,6 @@ def fetch_favorite_artists(option):
                     get_all_page_urls(cookie_domain,
                                       service,
                                       artist_id,
-                                      session,
-                                      headers,
                                       api_url_list)
                    # print("----------------------- ARTIST LIST --------------------------\n", artist_list)
                     print("----------------------- API URL LIST --------------------------\n", api_url_list)
@@ -158,7 +156,7 @@ def fetch_favorite_artists(option):
     return [], []
 
 
-def get_all_page_urls(cookie_domain, service, artist_id, session, headers, api_url_list):
+def get_all_page_urls(cookie_domain, service, artist_id, api_url_list):
     """
     Get all API page URLs for a specific artist.
     """
@@ -166,7 +164,7 @@ def get_all_page_urls(cookie_domain, service, artist_id, session, headers, api_u
     offset = 0
     while True:
         api_url = f'{api_base_url}?o={offset}'
-        response = session.get(api_url, headers=headers)
+        response = requests.get(api_url)
         if response.status_code != 200 or not response.json():
             break
 
