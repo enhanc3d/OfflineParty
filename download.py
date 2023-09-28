@@ -235,13 +235,13 @@ if __name__ == "__main__":
         if args.reset:
             delete_json_file('Config/coomer_favorites.json')
         main("coomer")
-        
+
     elif args.user:
         user = args.user if args.user else str(input("Please type the name of the creator: "))
+        username, json_file_path, url = user_search.main(user)
         run_with_base_url(user_search.main(user))
     elif args.both:
         if args.reset:
             delete_json_file('Config/kemono_favorites.json')
             delete_json_file('Config/coomer_favorites.json')
         main("both")
-
