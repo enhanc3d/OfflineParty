@@ -94,6 +94,9 @@ def run_with_base_url(url_list, artist_id_to_name, json_file):
         for url in tqdm(url_list, desc="Downloading pages..."): # Wrong number of pages from artist being shown
             # Extract the domain, platform, and artist name from the URL
             url_parts = url.split("/")
+            if len(url_parts) < 7:
+                print(f"Unexpected URL structure: {url}")
+                continue
             domain = url_parts[2].split(".")[0].capitalize()
             service = url_parts[4].capitalize()
             artist_id = url_parts[6].split("?")[0] # Split the artist's name by the question mark
@@ -239,8 +242,11 @@ if __name__ == "__main__":
     elif args.user:
         user = args.user if args.user else str(input("Please type the name of the creator: "))
         url, username, json_file_path,  = user_search_main(user)
+        # DEBUG print("-------------------URL----------------------\n",url)
+        # DEBUG print("-------------------Username----------------------\n",username)
+        # DEBUG print("-------------------json_file_path----------------------\n",json_file_path)
         artist_id_to_name = create_artist_id_to_name_mapping("Config/kemono_favorites.json")
-        run_with_base_url(url, artist_id_to_name, json_file_path)
+        run_with_base_url([url], artist_id_to_name, json_file_path)
     elif args.both:
         if args.reset:
             delete_json_file('Config/kemono_favorites.json')
