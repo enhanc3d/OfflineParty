@@ -160,10 +160,10 @@ def fetch_favorite_artists(option):
                                       service,
                                       artist_id,
                                       api_url_list)
-                    print("----------------------- API URL LIST --------------------------\n", api_url_list)
-                    safe_print("----------------------- FAVORITES DATA --------------------------")
-                    for item in favorites_data:
-                        safe_print(str(item))
+                    # print("----------------------- API URL LIST --------------------------\n", api_url_list)
+                    # safe_print("----------------------- FAVORITES DATA --------------------------")
+                    # for item in favorites_data:
+                    #    safe_print(str(item))
 
             return api_url_list, favorites_data
         """
