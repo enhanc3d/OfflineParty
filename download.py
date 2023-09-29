@@ -107,7 +107,7 @@ def run_with_base_url(url_list, artist_id_to_name, json_file):
             # Construct the folder structure
             artists_folder = "Creators"
             domain_folder = os.path.join(artists_folder, domain)
-            artist_folder = os.path.join(domain_folder, (sanitize_filename(artist_name)))
+            artist_folder = os.path.join(domain_folder, (sanitize_filename(artist_name))) #CAPITALIZE
             platform_folder = os.path.join(artist_folder, sanitize_filename(service))
 
             os.makedirs(platform_folder, exist_ok=True)
@@ -119,7 +119,9 @@ def run_with_base_url(url_list, artist_id_to_name, json_file):
             # total_posts = sum(len(page_data) for page_data in data)
 
             for post_num, post in enumerate(data, start=1):
-                post_folder_name = sanitize_filename(post.get('title') + "_" + sanitize_filename(post.get('published'))) if post.get('title') and post.get('published') else sanitize_filename(post.get('published', ''))
+                post_folder_name = sanitize_filename(sanitize_filename(post.get('title')) + "_" + sanitize_filename(post.get('published'))) if post.get('title') and post.get('published') else sanitize_filename(post.get('published', ''))
+                post_folder_name = sanitize_filename(post_folder_name)
+                print("------------------- POST FOLDER NAME -------------------", post_folder_name)
 
                 post_folder_path = os.path.join(platform_folder, post_folder_name)
                 os.makedirs(post_folder_path, exist_ok=True)
@@ -246,7 +248,7 @@ if __name__ == "__main__":
         url, username, json_file_path,  = user_search_main(user)
         # DEBUG print("-------------------URL----------------------\n",url)
         # DEBUG print("-------------------Username----------------------\n",username)
-        # DEBUG print("-------------------json_file_path----------------------\n",json_file_path)
+        print("-------------------json_file_path----------------------\n",json_file_path)
         artist_id_to_name = create_artist_id_to_name_mapping("Config/kemono_favorites.json")
         run_with_base_url(url, artist_id_to_name, json_file_path)
     elif args.both:
