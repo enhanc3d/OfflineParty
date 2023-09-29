@@ -156,7 +156,7 @@ def main(username):
                             "1. Use data from your favorites?\n"
                             "2. Input the URL manually\n"
                             "Please enter your choice (1/2): ")
-
+        # ------------------ OPTION 1 -------------------
         if user_choice == "1":
             _, coomer_data = get_favorites.main("coomer")
             _, kemono_data = get_favorites.main("kemono")
@@ -224,6 +224,8 @@ def main(username):
             domain, service, artist_id, username = extract_info(transformed_input_url)
             json_data = generate_json_dictionary_from_data(transformed_input_url)
             return get_list_of_user_urls(domain, service, artist_id, transformed_input_url), username, json_data
+
+        # ------------------ OPTION 2 -------------------
 
         elif user_choice == "2":
             transformed_input_url = input_and_transform_url()
