@@ -86,6 +86,8 @@ def download_file(url, folder_name, file_name, artist_url):
 
 
 def run_with_base_url(url_list, artist_id_to_name, json_file):
+    # debug -- print("------------------------------URL LIST-------------------------------\n", url_list)
+    # debug -- print("------------------------------JSON FILE-------------------------------\n", json_file)
     processed_users = set()  # Initialize an empty set to store processed users
     current_artist = None  # Initialize a variable to keep track of the current artist
     current_artist_url = None  # Initialize a variable to keep track of the current artist's URL
@@ -158,15 +160,14 @@ def run_with_base_url(url_list, artist_id_to_name, json_file):
 
                     # Add the username to the set of processed users
                     processed_users.add(username)
+            # Update the JSON file for every page downloaded (Temporary change)
+            if current_artist_url:
+                print("Saving artist to JSON")
+                print(current_artist_url, json_file)
+                save_artist_json(current_artist_url, json_file)
 
     except requests.exceptions.RequestException:
         return False
-
-    # After processing all pages for the current artist, call save_artist_json
-    if current_artist_url:
-        print("Saving artist to JSON")
-        # debug -- print(current_artist_url, json_file)
-        save_artist_json(current_artist_url, json_file)
 
     return True
 
