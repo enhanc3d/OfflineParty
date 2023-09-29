@@ -66,6 +66,7 @@ def generate_json_dictionary_from_data(url):
                 meta_tag = soup.find('meta', attrs={'name': 'artist_name', 'content': True})
                 if meta_tag:
                     username = meta_tag['content']
+                    print("---------------------NAME--------------------", username)
         return [{
             "faved_seq": "UNKNOWN",
             "id": username if username else "UNKNOWN",
