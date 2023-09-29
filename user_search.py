@@ -57,19 +57,20 @@ def generate_json_dictionary_from_data(url):
         username = None
 
         if "coomer" in domain:
+            # For COOMER domain, both "id" and "name" are artist_id
             username = artist_id
-        else:
-            # Load the website and parse HTML to find the username
+        elif "kemono" in domain:
+            # For KEMONO domain, load the website and parse HTML to find the username
             response = requests.get(url)
             if response.status_code == 200:
                 soup = BeautifulSoup(response.content, 'html.parser')
                 meta_tag = soup.find('meta', attrs={'name': 'artist_name', 'content': True})
                 if meta_tag:
                     username = meta_tag['content']
-                    print("---------------------NAME--------------------", username)
+
         return [{
             "faved_seq": "UNKNOWN",
-            "id": username if username else "UNKNOWN",
+            "id": artist_id,
             "indexed": "UNKNOWN",
             "last_imported": "UNKNOWN",
             "name": username if username else "UNKNOWN",
