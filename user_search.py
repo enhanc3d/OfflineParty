@@ -37,16 +37,16 @@ def extract_info(url):
         return domain, service, artist_id, username
 
 
-def generate_json_dictionary_from_data(url):
+def generate_json_dictionary_from_data(api_url, html_url):
     # Define regular expressions for extracting domain, service, and id
     domain_pattern = r"https://(.*?)/"
     service_pattern = r"/([^/]+)/user/"
     id_pattern = r"user/([^?]+)"
 
     # Extract domain, service, and id using regular expressions
-    domain_match = re.search(domain_pattern, url)
-    service_match = re.search(service_pattern, url)
-    id_match = re.search(id_pattern, url)
+    domain_match = re.search(domain_pattern, api_url)
+    service_match = re.search(service_pattern, api_url)
+    id_match = re.search(id_pattern, api_url)
 
     if domain_match and service_match and id_match:
         domain = domain_match.group(1)
@@ -61,12 +61,18 @@ def generate_json_dictionary_from_data(url):
             username = artist_id
         elif "kemono" in domain:
             # For KEMONO domain, load the website and parse HTML to find the username
-            response = requests.get(url)
+            response = requests.get(html_url)
             if response.status_code == 200:
                 soup = BeautifulSoup(response.content, 'html.parser')
+                # debug -- print("--------------------------URL--------------------------")
+                # debug -- print(api_url)
                 meta_tag = soup.find('meta', attrs={'name': 'artist_name', 'content': True})
+                # debug -- print("--------------------------META TAG--------------------------")
+                # debug -- print(meta_tag)
+
                 if meta_tag:
                     username = meta_tag['content']
+                    # debug -- print("--------------------------USERNAME--------------------------", username)
 
         return [{
             "faved_seq": "UNKNOWN",
@@ -84,6 +90,7 @@ def generate_json_dictionary_from_data(url):
 # Define a flag to indicate whether the URL has been found
 url_found = False
 
+
 def input_and_transform_url():
     valid_url = False
 
@@ -99,11 +106,10 @@ def input_and_transform_url():
 
         # Use regular expressions to validate the input URL
         if re.match(input_expected_pattern, input_url):
-            # Transform the input URL
+            # Transform the input URL for API calls
             url_parts = input_url.split('/')
             transformed_url = f"https://{url_parts[2]}/api/{url_parts[3]}/user/{url_parts[5]}"
-            # debug transformed url -- print(transformed_url)
-            return transformed_url
+            return transformed_url, input_url  # Return both transformed and original URL
         else:
             print("Invalid input URL format. Please enter a valid URL.")
 
@@ -232,11 +238,9 @@ def main(username):
         # ------------------ OPTION 2 -------------------
 
         elif user_choice == "2":
-            transformed_input_url = input_and_transform_url()
-
-            domain, service, artist_id, username = extract_info(transformed_input_url)
-
-            return get_list_of_user_urls(domain, service, artist_id, transformed_input_url), username, generate_json_dictionary_from_data(transformed_input_url)
+            api_url, html_url = input_and_transform_url()  # Get both URLs
+            domain, service, artist_id, username = extract_info(html_url)  # Use the HTML URL for extraction
+            return get_list_of_user_urls(domain, service, artist_id, api_url), username, generate_json_dictionary_from_data(api_url, html_url)  # Pass both URLs to the function
 
 # Example usage:
 # main("alexapearl")
