@@ -16,7 +16,7 @@ def extract_info(url):
     if url is None:
         print("Error: URL is None in extract_info")
         return None, None, None, None
-    print(f"URL Type in extract_info: {type(url)}, Value: {url}")
+    # debug -- print(f"URL Type in extract_info: {type(url)}, Value: {url}")
     domain_match = re.search(domain_pattern, url)
     service_match = re.search(service_pattern, url)
     id_match = re.search(id_pattern, url)
@@ -245,7 +245,7 @@ def main(username):
                     return return_data
 
             api_url, html_url = input_and_transform_url()  # Get both URLs
-            print(api_url, html_url)
+            # debug -- print(api_url, html_url)
             domain, service, artist_id, username = extract_info(html_url)  # Use the HTML URL for extraction
             return get_list_of_user_urls(domain, service, artist_id, api_url), username, generate_json_dictionary_from_data(api_url, html_url)  # Pass both URLs to the function
 
