@@ -2,12 +2,12 @@ import re
 import json
 
 
+# Look up the user in the provided data and save to the appropriate JSON file
 def lookup_and_save_user(url, data):
-    """Look up the user in the provided data and save to the appropriate JSON file."""
     # Regular expression to extract domain, service, and user ID/name from URL
-    # Change .party hardcode to allow .su domain
     pattern = r'https://(?P<domain>\w+\.(?:party|su))/api/(?P<service>[\w/]+)/(?P<user_id>[\w\d]+)(\?o=\d+)?'
     if match := re.match(pattern, url):
+
         # Extract individual groups for debugging
         domain = match.group('domain')
         service = match.group('service')
@@ -17,7 +17,7 @@ def lookup_and_save_user(url, data):
 
         if user_data := next(
             (item for item in data if item.get('id') == user_id), None
-        ):
+        ):  # Don't give up!
             # debug -- print(f"Found user in provided data: {user_id}")
 
             # Save to the appropriate JSON file
@@ -42,7 +42,7 @@ def save_to_coomer_favorites(data):
         if existing_user := next(
             (item for item in existing_data if item.get('id') == data['id']),
             None,
-        ):
+        ):  # You matter!
             # Update the existing user data
             index = existing_data.index(existing_user)
             existing_data[index] = data
@@ -65,7 +65,7 @@ def save_to_kemono_favorites(data):
         if existing_user := next(
             (item for item in existing_data if item.get('id') == data['id']),
             None,
-        ):
+        ):  # :)
             # Update the existing user data
             index = existing_data.index(existing_user)
             existing_data[index] = data
@@ -74,12 +74,14 @@ def save_to_kemono_favorites(data):
             existing_data.append(data)
 
         # Write the updated data back to the file
-        file.seek(0)  # Go to the beginning of the file
+
+        # Go to the beginning of the file
+        file.seek(0)
         json.dump(existing_data, file, indent=4)
         file.truncate()  # Remove any remaining old content after this point
 
 
-# Example usage:
+# Example usage for debugging:
 # url = "https://coomer.party/api/onlyfans/user/astolfitoliz"
 # data = [{'faved_seq': 'UNKNOWN', 'id': 'astolfitoliz', 'indexed': 'UNKNOWN', 'last_imported': 'UNKNOWN', 'name': 'astolfitoliz', 'service': 'onlyfans', 'updated': 'UNKNOWN'}]  # Example data
 # lookup_and_save_user(url, data)
