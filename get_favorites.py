@@ -1,9 +1,9 @@
+import browser_cookie3
 import requests
 import time
-import browser_cookie3
 import json
-import os
 import sys
+import os
 from tqdm import tqdm
 
 
@@ -44,6 +44,61 @@ def create_config(directory):
             json.dump([], coomer_file)
 
 
+def check_updates_for_non_favorites(json_file_path):
+
+    # Define the list to be returned
+    api_url_list = []
+
+    try:
+        with open(json_file_path, 'r') as json_file:
+            json_data = json.load(json_file)
+
+        for entry in json_data:
+            faved_seq = entry.get("faved_seq")
+            artist_id = entry.get("id")
+            artist_name = entry.get("name")
+            service = entry.get("service")
+            old_date = entry.get("updated")
+
+            if faved_seq == "UNKNOWN":
+                if artist_id.isdigit():
+                    cookie_domain = "kemono.party"
+                else:
+                    cookie_domain = "coomer.party"
+
+                api_base_url = f'https://{cookie_domain}/api/{service}/user/{artist_id}'
+
+                try:
+                    response = requests.get(api_base_url)
+                    response.raise_for_status()
+                    website_data = response.json()
+
+                    # Assuming website_data is a list of dictionaries
+                    if website_data:
+                        # Extracting the "published" key from the first item in the list
+                        published_date = website_data[0].get("published")
+
+                        # Update the "updated" field in the entry with the new published_date
+                        entry["updated"] = published_date
+
+                        # Write the updated JSON data back to the file
+                        with open(json_file_path, 'w') as updated_json_file:
+                            json.dump(json_data, updated_json_file, indent=4)
+
+                        if old_date != published_date:   
+                            api_url_list = get_all_page_urls(cookie_domain, service, artist_id, api_url_list)
+                        # debug -- print("Returning:", api_url_list)
+                        return api_url_list
+                    else:
+                        return None  # No data found on the website
+                except requests.exceptions.RequestException as e:
+                    print(f"Error fetching data from website: {e}")
+
+    except FileNotFoundError:
+        print(f"JSON file not found: {json_file_path}")
+
+    return None  # No entry with "faved_seq" as "UNKNOWN" or an error occurred
+
 def load_old_favorites_data(json_file):
     """
     Loads the existing JSON files for coomer or kemono, if they exist.
@@ -58,18 +113,6 @@ def load_old_favorites_data(json_file):
         print("JSON file not found. It will be created after fetching data.")
     return old_favorites_data
 
-
-
-def create_session_with_cookies(primary_cookie_domain, fallback_cookie_domain):
-    session = requests.Session()
-    cj = browser_cookie3.load(domain=primary_cookie_domain)
-    if not cj:
-        cj = browser_cookie3.load(domain=fallback_cookie_domain)
-    session.cookies.update(cj)
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-    return session, headers
 
 def fetch_favorite_artists(option):
     """
@@ -165,10 +208,9 @@ def fetch_favorite_artists(option):
                     # for item in favorites_data:
                     #    safe_print(str(item))
 
-            return api_url_list, favorites_data
-        """
-        Returns the list of artists, with 
-        """
+            non_favorites_api_url_list = check_updates_for_non_favorites(json_file)
+            all_api_urls = api_url_list + non_favorites_api_url_list
+            return all_api_urls, favorites_data
 
     print("Failed to fetch favorite artists from primary and fallback URLs.")
     return [], []
