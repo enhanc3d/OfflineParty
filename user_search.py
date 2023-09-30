@@ -1,8 +1,9 @@
-import json
 import re
+import json
+import requests
 import get_favorites
 from bs4 import BeautifulSoup
-import requests
+from datetime import datetime
 
 
 def extract_info(url):
@@ -38,6 +39,13 @@ def extract_info(url):
 
 
 def generate_json_dictionary_from_data(api_url, html_url):
+
+    # Get the current date and time
+    current_datetime = datetime.utcnow()
+
+    # Format the datetime
+    formatted_datetime = current_datetime.strftime('%a, %d %b %Y %H:%M:%S GMT')
+
     # Define regular expressions for extracting domain, service, and id
     domain_pattern = r"https://(.*?)/"
     service_pattern = r"/([^/]+)/user/"
@@ -81,7 +89,7 @@ def generate_json_dictionary_from_data(api_url, html_url):
             "last_imported": "UNKNOWN",
             "name": username if username else "UNKNOWN",
             "service": service,
-            "updated": "UNKNOWN"
+            "updated": formatted_datetime
         }]
     else:
         return None
