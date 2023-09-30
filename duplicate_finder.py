@@ -19,7 +19,7 @@ def collect_choices(id_name_service_mapping):
         except ValueError:
             print("Invalid input. Please enter valid numeric choices separated by commas.")
 
-def refactored_find_and_download_entries(data_list, target_name):
+def find_and_download_entries(data_list, target_name):
     target_name = target_name.lower()
     id_name_service_mapping = {}
     for item in data_list:
