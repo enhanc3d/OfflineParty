@@ -13,6 +13,10 @@ def extract_info(url):
     id_pattern = r"user/([^?]+)"
 
     # Extract domain, service, and id using regular expressions
+    if url is None:
+        print("Error: URL is None in extract_info")
+        return None, None, None, None
+    print(f"URL Type in extract_info: {type(url)}, Value: {url}")
     domain_match = re.search(domain_pattern, url)
     service_match = re.search(service_pattern, url)
     id_match = re.search(id_pattern, url)
@@ -72,17 +76,13 @@ def generate_json_dictionary_from_data(api_url, html_url):
             response = requests.get(html_url)
             if response.status_code == 200:
                 soup = BeautifulSoup(response.content, 'html.parser')
-                # debug -- print("--------------------------URL--------------------------")
-                # debug -- print(api_url)
-                meta_tag = soup.find('meta', attrs={'name': 'artist_name', 'content': True})
-                # debug -- print("--------------------------META TAG--------------------------")
-                # debug -- print(meta_tag)
-
-                if meta_tag:
+                if meta_tag := soup.find(
+                    'meta', attrs={'name': 'artist_name', 'content': True}
+                ):
                     username = meta_tag['content']
-                    # debug -- print("--------------------------USERNAME--------------------------", username)
 
-        return [{
+        # Create the dictionary
+        result = {
             "faved_seq": "UNKNOWN",
             "id": artist_id,
             "indexed": "UNKNOWN",
@@ -90,7 +90,13 @@ def generate_json_dictionary_from_data(api_url, html_url):
             "name": username if username else "UNKNOWN",
             "service": service,
             "updated": formatted_datetime
-        }]
+        }
+
+        # Update the "indexed" key if its value is "UNKNOWN"
+        if result["indexed"] == "UNKNOWN":
+            result["indexed"] = formatted_datetime
+
+        return [result]
     else:
         return None
 
@@ -117,7 +123,7 @@ def input_and_transform_url():
             # Transform the input URL for API calls
             url_parts = input_url.split('/')
             transformed_url = f"https://{url_parts[2]}/api/{url_parts[3]}/user/{url_parts[5]}"
-            return transformed_url, input_url  # Return both transformed and original URL
+            return transformed_url, input_url if transformed_url and input_url else (None, None)  # Return both transformed and original URL
         else:
             print("Invalid input URL format. Please enter a valid URL.")
 
