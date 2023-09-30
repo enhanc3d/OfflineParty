@@ -12,17 +12,13 @@ from user_search import main as user_search_main
 
 
 # Map Kemono artist IDs to their names
-def create_artist_id_to_name_mapping(json_file_path):
-    try:
-        with open(json_file_path, "r") as file:
-            data = json.load(file)
-        return {item["id"]: item["name"].capitalize() for item in data}
-    except FileNotFoundError:
-        print(f"No such file: {json_file_path}")
-        return {}
-    except json.JSONDecodeError:
-        print(f"Could not parse JSON file: {json_file_path}")
-        return {}
+def create_artist_id_to_name_mapping(data):
+    if isinstance(data, dict):
+        return {artist_id: artist_name.capitalize() for artist_id, artist_name in data.items()}
+    elif isinstance(data, list):
+        return {item["id"]: item["name"].capitalize() for item in data if isinstance(item, dict) and "id" in item and "name" in item}
+    else:
+        return {}  # Return an empty dictionary for unsupported data types
 
 
 def get_with_retry_and_fallback(url, retries=3,
@@ -85,29 +81,45 @@ def download_file(url, folder_name, file_name, artist_url):
         print(f"Downloading: {file_name}")
 
 
-def run_with_base_url(url_list, artist_id_to_name, json_file):
-    # debug -- print("------------------------------URL LIST-------------------------------\n", url_list)
-    # debug -- print("------------------------------JSON FILE-------------------------------\n", json_file)
-    processed_users = set()  # Initialize an empty set to store processed users
-    current_artist = None  # Initialize a variable to keep track of the current artist
-    current_artist_url = None  # Initialize a variable to keep track of the current artist's URL
+def run_with_base_url(url_list, data, json_file):
+
+    # Use the create_artist_id_to_name_mapping function to get the mapping
+    # debug -- print("------------------- DATA ---------------", data)
+
+    artist_id_to_name = create_artist_id_to_name_mapping(data)
+
+    # Initialize an empty set to store processed users
+    processed_users = set()
+
+    # Initialize a variable to keep track of the current artist
+
+    current_artist = None
+
+    # Initialize a variable to keep track of the current artist's URL
+    current_artist_url = None
 
     try:
         for url in tqdm(url_list, desc="Downloading pages..."): # Wrong number of pages from artist being shown
+
             # Extract the domain, platform, and artist name from the URL
             url_parts = url.split("/")
             if len(url_parts) < 7:
-                # Commented until resolved -- print(f"Unexpected URL structure: {url}")
+                print(f"Unexpected URL structure: {url}")
                 continue
             domain = url_parts[2].split(".")[0].capitalize()
             service = url_parts[4].capitalize()
             artist_id = url_parts[6].split("?")[0] # Split the artist's name by the question mark
-            artist_name = artist_id_to_name.get(artist_id, artist_id).capitalize()
+            artist_name = artist_id_to_name.get(artist_id)
+
+            # debug -- print("------------------- DOMAIN ---------------------", domain)
+            # debug -- print("------------------- SERVICE ---------------------", service)
+            # debug -- print("------------------- ARTIST ID ---------------------", artist_id)
+            # debug -- print("------------------- ARTIST NAME ---------------------", artist_name)
 
             # Construct the folder structure
             artists_folder = "Creators"
             domain_folder = os.path.join(artists_folder, domain)
-            artist_folder = os.path.join(domain_folder, (sanitize_filename(artist_name))) #CAPITALIZE
+            artist_folder = os.path.join(domain_folder, (sanitize_filename(artist_name)))
             platform_folder = os.path.join(artist_folder, sanitize_filename(service))
 
             os.makedirs(platform_folder, exist_ok=True)
@@ -116,14 +128,13 @@ def run_with_base_url(url_list, artist_id_to_name, json_file):
             response = get_with_retry_and_fallback(url)
             data = json.loads(response.text)
 
-            # total_posts = sum(len(page_data) for page_data in data)
-
             for post_num, post in enumerate(data, start=1):
                 post_folder_name = sanitize_filename(sanitize_filename(post.get('title')) + "_" + sanitize_filename(post.get('published'))) if post.get('title') and post.get('published') else sanitize_filename(post.get('published', ''))
                 post_folder_name = sanitize_filename(post_folder_name)
-                print("------------------- POST FOLDER NAME -------------------", post_folder_name)
 
-                post_folder_path = os.path.join(platform_folder, post_folder_name)
+                post_folder_path = os.path.join(platform_folder,
+                                                post_folder_name)
+
                 os.makedirs(post_folder_path, exist_ok=True)
 
                 base_url = "/".join(url.split("/")[:3])  # Extract the base URL
@@ -150,22 +161,27 @@ def run_with_base_url(url_list, artist_id_to_name, json_file):
 
                 # Check if the username is not in the set of processed users
                 if username not in processed_users:
+
                     # Check if the current artist is different from the previous one
                     if artist_name != current_artist:
-                        print(f"Processing user: {username}")
-                        current_artist_url = url  # Update the current artist's URL
-                    else:
-                        print(f"User {username} already processed. Skipping.")
 
-                    # Update the current artist
-                    current_artist = artist_name
+                        # debug -- print(f"Processing user: {artist_name}")
+
+                        # Update the current artist's URL
+                        current_artist_url = url
+                    else:
+                        # debug -- print(f"User {username} already processed. Skipping.")
+
+                        # Update the current artist
+                        current_artist = artist_name
 
                     # Add the username to the set of processed users
                     processed_users.add(username)
+
             # Update the JSON file for every page downloaded (Temporary change)
             if current_artist_url:
                 print("Saving artist to JSON")
-                print(current_artist_url, json_file)
+                # debug -- print(current_artist_url, json_file)
                 save_artist_json(current_artist_url, json_file)
 
     except requests.exceptions.RequestException:
@@ -186,10 +202,9 @@ def main(option):
 
     for option in options:
         api_pages, json_file = get_favorites.main(option)
-        # debug -- print(json_file)
         url_list.extend(api_pages)
-    artist_id_to_name = create_artist_id_to_name_mapping("Config/kemono_favorites.json")
-    run_with_base_url(url_list, artist_id_to_name, json_file)
+        artist_id_to_name = create_artist_id_to_name_mapping(json_file)
+        run_with_base_url(url_list, artist_id_to_name, json_file)
 
 
 def delete_json_file(filename):
@@ -244,12 +259,13 @@ if __name__ == "__main__":
         main("coomer")
 
     elif args.user:
-        user = args.user if args.user else str(input("Please type the name of the creator: "))
+        # user = args.user if args.user else str(input("Please type the name of the creator: "))
+        user = args.user or str(input("Please type the name of the creator: "))
         url, username, json_file_path,  = user_search_main(user)
         # DEBUG print("-------------------URL----------------------\n",url)
         # DEBUG print("-------------------Username----------------------\n",username)
-        print("-------------------json_file_path----------------------\n",json_file_path)
-        artist_id_to_name = create_artist_id_to_name_mapping("Config/kemono_favorites.json")
+        # print("-------------------json_file_path----------------------\n",json_file_path)
+        artist_id_to_name = create_artist_id_to_name_mapping(json_file_path)
         run_with_base_url(url, artist_id_to_name, json_file_path)
     elif args.both:
         if args.reset:
