@@ -241,7 +241,7 @@ def main(username):
                     # Set the flag to indicate URL found and exit the function
                     url_found = True
                     json_data = generate_json_dictionary_from_data(api_url, html_url)
-                    return_data = get_list_of_user_urls(domain, service, artist_id, url), username, json_data
+                    return_data = get_list_of_user_urls(domain, service, artist_id, api_url), username, json_data
                     return return_data
 
             api_url, html_url = input_and_transform_url()  # Get both URLs
