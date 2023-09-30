@@ -233,21 +233,21 @@ def main(username):
                         domain = "kemono.party"
                     else:
                         domain = "coomer.party"
-                    url = f"https://{domain}/api/{found_user.get('service')}/user/{found_user.get('id')}"
+                    api_url = f"https://{domain}/api/{found_user.get('service')}/user/{found_user.get('id')}"
+                    html_url = f"https://{domain}/{found_user.get('service')}/user/{found_user.get('id')}"
                     service = found_user.get('service')
                     artist_id = found_user.get('id')
                     # debug found url -- print(url)
                     # Set the flag to indicate URL found and exit the function
                     url_found = True
-                    json_data = generate_json_dictionary_from_data(url)
+                    json_data = generate_json_dictionary_from_data(api_url, html_url)
                     return_data = get_list_of_user_urls(domain, service, artist_id, url), username, json_data
                     return return_data
 
-            transformed_input_url = input_and_transform_url()
-
-            domain, service, artist_id, username = extract_info(transformed_input_url)
-            json_data = generate_json_dictionary_from_data(transformed_input_url)
-            return get_list_of_user_urls(domain, service, artist_id, transformed_input_url), username, json_data
+            api_url, html_url = input_and_transform_url()  # Get both URLs
+            print(api_url, html_url)
+            domain, service, artist_id, username = extract_info(html_url)  # Use the HTML URL for extraction
+            return get_list_of_user_urls(domain, service, artist_id, api_url), username, generate_json_dictionary_from_data(api_url, html_url)  # Pass both URLs to the function
 
         # ------------------ OPTION 2 -------------------
 
