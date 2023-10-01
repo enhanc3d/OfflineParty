@@ -21,16 +21,30 @@ jobs:
           git config --global user.name "2000GHz"
           git config --global user.email "59731892+2000GHz@users.noreply.github.com"
 
+
+      - name: List contents of .github/scripts
+        run: ls -al .github/scripts/
+
       - name: Grant execute permissions to the script
         run: chmod +x .github/scripts/bump_version.sh
-        
+
       - name: Bump version and create tag
         id: bump_and_tag
         run: |
-            current_version=$(cat .github/scripts/version.txt)
-            new_version=$(.github/scripts/bump_version.sh) # Corrected path to the script
-            git tag -a -m "Release $new_version" "$new_version"
-            echo "::set-output name=new_version::$new_version"   
+          current_version=$(cat .github/scripts/version.txt)
+          echo "Current version is: $current_version"
+      
+          new_version=$(.github/scripts/bump_version.sh) # Corrected path to the script
+          echo "New version is: $new_version"
+      
+          if [[ -z "$new_version" || "$new_version" == .* ]]; then
+            echo "Error: Invalid new version: $new_version"
+            exit 1
+          fi
+      
+          git tag -a -m "Release $new_version" "$new_version"
+          echo "::set-output name=new_version::$new_version"   
+         
 
       - name: Push tag to repository
         run: git push origin ${{ steps.bump_and_tag.outputs.new_version }}
