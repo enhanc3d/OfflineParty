@@ -59,32 +59,32 @@ def find_and_return_entries(data_list, input_username):
     return [potential_matches[i - 1][1] for i in choice_list]
 
 
-if __name__ == "__main__":
-    data_list = [
-        {
-            'faved_seq': 12438757,
-            'id': '19627910',
-            'indexed': 'Sun, 23 Aug 2020 16:03:21 GMT',
-            'last_imported': 'Tue, 26 Sep 2023 14:46:02 GMT',
-            'name': 'Kamuo',
-            'service': 'patreon',
-            'updated': 'Sun, 24 Sep 2023 05:17:18 GMT'
-        },
-        {
-            "faved_seq": 24961280,
-            "id": "3452671279253",
-            "indexed": "Thu, 03 Feb 2022 14:44:29 GMT",
-            "last_imported": "Sat, 28 May 2022 03:24:08 GMT",
-            "name": "Kamuo",
-            "service": "gumroad",
-            "updated": "Thu, 17 Feb 2022 15:49:17 GMT"
-        }
-    ]
-    
-    input_username = "kamuo"
-    selected_entries = find_and_return_entries(data_list, input_username)
+# if __name__ == "__main__":
+#     data_list = [
+#         {
+#             'faved_seq': 12438757,
+#             'id': '19627910',
+#             'indexed': 'Sun, 23 Aug 2020 16:03:21 GMT',
+#             'last_imported': 'Tue, 26 Sep 2023 14:46:02 GMT',
+#             'name': 'Kamuo',
+#             'service': 'patreon',
+#             'updated': 'Sun, 24 Sep 2023 05:17:18 GMT'
+#         },
+#         {
+#             "faved_seq": 24961280,
+#             "id": "3452671279253",
+#             "indexed": "Thu, 03 Feb 2022 14:44:29 GMT",
+#             "last_imported": "Sat, 28 May 2022 03:24:08 GMT",
+#             "name": "Kamuo",
+#             "service": "gumroad",
+#             "updated": "Thu, 17 Feb 2022 15:49:17 GMT"
+#         }
+#     ]
 
-    if selected_entries:
-        print(selected_entries)
-    else:
-        print("No matching entries found")
+#     input_username = "kamuo"
+#     selected_entries = find_and_return_entries(data_list, input_username)
+
+#     if selected_entries:
+#         print(selected_entries)
+#     else:
+#         print("No matching entries found")
