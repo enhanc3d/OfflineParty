@@ -1,10 +1,10 @@
 import os
 
 def display_options(id_name_service_mapping):
-    for i, artist_service in enumerate(id_name_service_mapping, start=1):
+    for i, (artist_service, _) in enumerate(id_name_service_mapping.items(), start=1):
         # Use title() to capitalize each word in the string
         print(f"{i}. {artist_service.title()}")
-    print(f"{i+1}. Download all\n")
+    print(f"{len(id_name_service_mapping) + 1}. Download all\n")
 
 def collect_choices(id_name_service_mapping):
     while True:
@@ -19,42 +19,34 @@ def collect_choices(id_name_service_mapping):
         except ValueError:
             print("Invalid input. Please enter valid numeric choices separated by commas.")
 
-def find_and_download_entries(data_list, target_name):
+def find_and_return_entries(data_list, target_name):
     target_name = target_name.lower()
-    id_name_service_mapping = {}
+    potential_matches = []
+    
     for item in data_list:
-        name = item.get('name').capitalize()
-        service = item.get('service').capitalize()
+        name = item.get('name', '').capitalize()
+        service = item.get('service', '').capitalize()
         if name.lower() == target_name:
-            id_value = item.get('id')
             artist_service = f"{name} ({service})"
-            if artist_service not in id_name_service_mapping:
-                id_name_service_mapping[artist_service] = []
-            id_name_service_mapping[artist_service].append(id_value)
-
-    if not id_name_service_mapping:
+            potential_matches.append((artist_service, item))
+    
+    if not potential_matches:
         print(f"No matching entries found for {target_name.capitalize()}")
         return None
 
     print(f"Multiple creators found for {target_name.capitalize()}:\n")
-    display_options(id_name_service_mapping)
-    choice_list = collect_choices(id_name_service_mapping)
+    for i, (artist_service, _) in enumerate(potential_matches, start=1):
+        print(f"{i}. {artist_service}")
+    print(f"{len(potential_matches) + 1}. Download all\n")
 
-    id_to_name_relation = {}
-    for choice in choice_list:
-        if choice == len(id_name_service_mapping) + 1:
-            print("Downloading all...")
-            for artist_service, ids in id_name_service_mapping.items():
-                for id_value in ids:
-                    id_to_name_relation[id_value] = artist_service.split(" (")[0]
-        else:
-            artist_service = list(id_name_service_mapping.keys())[choice - 1]
-            ids = id_name_service_mapping[artist_service]
-            print(f"Downloading {artist_service}...")
-            for id_value in ids:
-                id_to_name_relation[id_value] = artist_service.split(" (")[0]
+    choice_list = collect_choices({k: v for k, v in potential_matches})
 
-    return id_to_name_relation
+    if len(choice_list) == 1 and choice_list[0] == len(potential_matches) + 1:
+        print("Returning all entries...")
+        return potential_matches
+
+    selected_entry = potential_matches[choice_list[0] - 1][1]  # Extract the dictionary from the tuple
+    return selected_entry
 
 if __name__ == "__main__":
     data_list = [
@@ -79,9 +71,9 @@ if __name__ == "__main__":
     ]
     
     target_name = input("Enter the username: ").capitalize()
-    id_to_name_relation = refactored_find_and_download_entries(data_list, target_name)
+    selected_entries = find_and_return_entries(data_list, target_name)
 
-    if id_to_name_relation:
-        print(id_to_name_relation)
+    if selected_entries:
+        print(selected_entries)
     else:
         print("No matching entries found")
