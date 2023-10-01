@@ -1,9 +1,25 @@
+import browser_cookie3
 import requests
 import time
-import browser_cookie3
 import json
+import sys
 import os
 from tqdm import tqdm
+
+
+def safe_print(text):
+    try:
+        # Try to print the text as UTF-8
+        sys.stdout.buffer.write(text.encode('utf-8'))
+        sys.stdout.buffer.write(b'\n')
+    except UnicodeEncodeError:
+        # Handle characters that cannot be encoded
+        for char in text:
+            try:
+                sys.stdout.buffer.write(char.encode('utf-8'))
+            except UnicodeEncodeError:
+                sys.stdout.buffer.write(b'?')  # Replace unencodable characters with a placeholder
+        sys.stdout.buffer.write(b'\n')
 
 
 def create_config(directory):
@@ -26,6 +42,63 @@ def create_config(directory):
     if not os.path.exists(coomer_file_path):
         with open(coomer_file_path, 'w') as coomer_file:
             json.dump([], coomer_file)
+
+
+def check_updates_for_non_favorites(json_file_path):
+
+    # Define the list to be returned
+    api_url_list = []
+    json_dicts = []  # List to store JSON dictionaries
+
+    try:
+        with open(json_file_path, 'r') as json_file:
+            json_data = json.load(json_file)
+
+        for entry in json_data:
+            faved_seq = entry.get("faved_seq")
+            artist_id = entry.get("id")
+            artist_name = entry.get("name")
+            service = entry.get("service")
+            old_date = entry.get("updated")
+
+            if faved_seq == "UNKNOWN":
+                if artist_id.isdigit():
+                    cookie_domain = "kemono.party"
+                else:
+                    cookie_domain = "coomer.party"
+
+                api_base_url = f'https://{cookie_domain}/api/{service}/user/{artist_id}'
+
+                try:
+                    response = requests.get(api_base_url)
+                    response.raise_for_status()
+                    website_data = response.json()
+
+                    # Assuming website_data is a list of dictionaries
+                    if website_data:
+                        # Extracting the "published" key from the first item in the list
+                        published_date = website_data[0].get("published")
+
+                        # Update the "updated" field in the entry with the new published_date
+                        entry["updated"] = published_date
+
+                        # Append the JSON dictionary to the list
+                        json_dicts.append(entry)
+
+                        if old_date != published_date:
+                            api_url_list = get_all_page_urls(cookie_domain, service, artist_id, api_url_list)
+
+                    else:
+                        return None, None  # No data found on the website
+
+                except requests.exceptions.RequestException as e:
+                    print(f"Error fetching data from website: {e}")
+
+    except FileNotFoundError:
+        print(f"JSON file not found: {json_file_path}")
+
+    # Return both the list of unupdated URLs and the list of JSON dictionaries
+    return api_url_list, json_dicts
 
 
 def load_old_favorites_data(json_file):
@@ -113,7 +186,6 @@ def fetch_favorite_artists(option):
         if favorites_response.status_code == 200:
             favorites_data = favorites_response.json()
 
-            artist_list = []
             api_url_list = []
 
             for artist in tqdm(favorites_data, desc="Processing artists"):
@@ -132,19 +204,23 @@ def fetch_favorite_artists(option):
                     get_all_page_urls(cookie_domain,
                                       service,
                                       artist_id,
-                                      session,
-                                      headers,
                                       api_url_list)
-            return artist_list, api_url_list, favorites_data
-        """
-        Returns the list of artists, with 
-        """
+                    # print("----------------------- API URL LIST --------------------------\n", api_url_list)
+                    # safe_print("----------------------- FAVORITES DATA --------------------------")
+                    # for item in favorites_data:
+                    #    safe_print(str(item))
+
+            non_favorites_api_url_list, non_favorite_json_data = check_updates_for_non_favorites(json_file)
+            all_api_urls = api_url_list + non_favorites_api_url_list
+            favorites_data.extend(non_favorite_json_data)
+            # print(all_api_urls, favorites_data)
+            return all_api_urls, favorites_data
 
     print("Failed to fetch favorite artists from primary and fallback URLs.")
-    return [], [], []
+    return [], []
 
 
-def get_all_page_urls(cookie_domain, service, artist_id, session, headers, api_url_list):
+def get_all_page_urls(cookie_domain, service, artist_id, api_url_list):
     """
     Get all API page URLs for a specific artist.
     """
@@ -152,13 +228,13 @@ def get_all_page_urls(cookie_domain, service, artist_id, session, headers, api_u
     offset = 0
     while True:
         api_url = f'{api_base_url}?o={offset}'
-        response = session.get(api_url, headers=headers)
+        response = requests.get(api_url)
         if response.status_code != 200 or not response.json():
             break
 
         api_url_list.append(api_url)
         offset += 50
-    
+
     return api_url_list  # Move the return statement here, outside the loop
 
 
@@ -166,9 +242,9 @@ def main(option):
     """
     Main function to fetch favorite artists.
     """
-    artist_list, api_pages_all_artists, favorites_data = fetch_favorite_artists(option)
+    api_pages_all_artists, favorites_data = fetch_favorite_artists(option)
     # debug -- print(api_pages_all_artists)
-    return [], api_pages_all_artists, favorites_data
+    return api_pages_all_artists, favorites_data
 
 
 if __name__ == "__main__":
