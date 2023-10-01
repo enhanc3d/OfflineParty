@@ -28,6 +28,7 @@ def collect_choices(id_name_service_mapping):
             print("Invalid input. Please enter valid numeric choices separated by commas.")
             continue
 
+
 def find_and_return_entries(data_list, input_username):
     input_username = input_username.lower()
     potential_matches = []
@@ -39,10 +40,17 @@ def find_and_return_entries(data_list, input_username):
             artist_service = f"{name} ({service})"
             potential_matches.append((artist_service, item))
 
+    # If no matches found
     if not potential_matches:
         print(f"No matching entries found for {input_username.capitalize()}")
         return None
 
+    # If only one match found
+    if len(potential_matches) == 1:
+        artist_service, entry = potential_matches[0]
+        return [entry]
+
+    # If multiple matches found
     print(f"Multiple creators found for {input_username.capitalize()}:\n")
     for i, (artist_service, _) in enumerate(potential_matches, start=1):
         print(f"{i}. {artist_service}")
@@ -57,6 +65,7 @@ def find_and_return_entries(data_list, input_username):
 
     # For specific choices, return selected entries
     return [potential_matches[i - 1][1] for i in choice_list]
+
 
 
 # if __name__ == "__main__":
