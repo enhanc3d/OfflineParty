@@ -7,6 +7,12 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type (major, minor, patch)'
+        required: true
+        default: 'minor'
 
 jobs:
   create_release:
@@ -37,8 +43,7 @@ jobs:
         run: |
           cd .github/scripts
           chmod +x ./bump_version.sh
-          current_version=$(cat version.txt)
-          new_version=$(./bump_version.sh)
+          new_version=$(./bump_version.sh ${{ github.event.inputs.bump_type }})
           git tag -a -m "Release v$new_version" "v$new_version"
           echo "::set-output name=new_version::v$new_version"
 

@@ -10,7 +10,7 @@ minor="${version_parts[1]}"
 patch="${version_parts[2]}"
 
 # Choose the type of version bump (major, minor, or patch)
-bump_type="minor"
+bump_type=$1
 
 if [ "$bump_type" == "major" ]; then
   major=$((major + 1))
