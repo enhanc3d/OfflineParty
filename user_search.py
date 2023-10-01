@@ -220,7 +220,7 @@ def main(username):
     else:
         # If user not found, ask the user for next steps
         user_choice = input("User not found in local data. Would you like to:\n"
-                            "1. Use data from your favorites?\n"
+                            "1. Check for new favorites\n"
                             "2. Input the URL manually\n"
                             "Please enter your choice (1/2): ")
         # ------------------ OPTION 1 -------------------
