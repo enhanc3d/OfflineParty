@@ -214,6 +214,7 @@ def main(username):
     else:
         # If user not found, ask the user for next steps
         while True:  # Keep looping until a valid choice is made
+            os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console
             user_choice = input("User not found in local data. Would you like to:\n"
                                 "1. Check for new favorites\n"
                                 "2. Input the URL manually\n"
