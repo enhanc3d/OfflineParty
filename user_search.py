@@ -177,7 +177,7 @@ def main(username):
     if kemono_json_data is not None:
         combined_data.extend(kemono_json_data)
 
-    print("Inspecting combined_data:", combined_data)
+    # debug -- print("Inspecting combined_data:", combined_data)
     # Search for the username in the combined data and print the corresponding dictionary
     found_user = None
     for user_data in combined_data:
