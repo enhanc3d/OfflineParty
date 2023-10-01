@@ -29,22 +29,37 @@ jobs:
         run: chmod +x .github/scripts/bump_version.sh
 
       - name: Bump version and create tag
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         id: bump_and_tag
         run: |
+          # Print current directory and its contents for debugging
+          echo "Before cd:"
+          echo "Current directory: $(pwd)"
+          ls -al
+      
           current_version=$(cat .github/scripts/version.txt)
           echo "Current version is: $current_version"
+            
+          cd .github/scripts
       
-          new_version=$(bash .github/scripts/bump_version.sh)
+          # Print current directory and its contents after changing directory
+          echo "After cd:"
+          echo "Current directory: $(pwd)"
+          ls -al
+      
+          new_version=$(bash ./bump_version.sh)
+          cd -
+              
           echo "New version is: $new_version"
-      
+            
           if [[ -z "$new_version" || "$new_version" == .* ]]; then
             echo "Error: Invalid new version: $new_version"
             exit 1
           fi
-      
+            
           git tag -a -m "Release $new_version" "$new_version"
-          echo "::set-output name=new_version::$new_version"   
-         
+          echo "::set-output name=new_version::$new_version"
+      
 
       - name: Push tag to repository
         run: git push origin ${{ steps.bump_and_tag.outputs.new_version }}
