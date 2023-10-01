@@ -30,7 +30,7 @@ jobs:
         id: bump_and_tag
         run: |
           cd .github/scripts
-          chmod +x .github/scripts/bump_version.sh
+          chmod +x ./bump_version.sh
           current_version=$(cat version.txt)
           new_version=$(./bump_version.sh)
           git tag -a -m "Release $new_version" "$new_version"
