@@ -26,16 +26,13 @@ jobs:
             pwd
             ls -la
   
-      - name: Ensure bump_version.sh has execute permissions
-        run: chmod +x .github/scripts/bump_version.sh
-
-
       - name: Bump version and create tag
         id: bump_and_tag
         run: |
           cd .github/scripts
+          chmod +x .github/scripts/bump_version.sh
           current_version=$(cat version.txt)
-          new_version=$(bump_version.sh) # Path to the script
+          new_version=$(./bump_version.sh)
           git tag -a -m "Release $new_version" "$new_version"
           echo "::set-output name=new_version::$new_version"
 
