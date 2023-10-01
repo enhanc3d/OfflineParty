@@ -84,8 +84,8 @@ def download_file(url, folder_name, file_name, artist_url):
 def run_with_base_url(url_list, data, json_file):
 
     # Use the create_artist_id_to_name_mapping function to get the mapping
-    print("------------------- DATA ---------------\n", data)
-    print("------------------- URL LIST ---------------\n", url_list)
+    # debug -- print("------------------- DATA ---------------\n", data)
+    # debug -- print("------------------- URL LIST ---------------\n", url_list)
 
 
     artist_id_to_name = create_artist_id_to_name_mapping(data)
