@@ -27,14 +27,15 @@ jobs:
             ls -la
   
       - name: Ensure bump_version.sh has execute permissions
-        run: chmod +x ./scripts/bump_version.sh
+        run: chmod +x .github/scripts/bump_version.sh
 
 
       - name: Bump version and create tag
         id: bump_and_tag
         run: |
+          cd .github/scripts
           current_version=$(cat version.txt)
-          new_version=$(./scripts/bump_version.sh) # Path to the script
+          new_version=$(bump_version.sh) # Path to the script
           git tag -a -m "Release $new_version" "$new_version"
           echo "::set-output name=new_version::$new_version"
 
@@ -45,6 +46,7 @@ jobs:
 
       - name: Compress files for the release
         run: |
+          cd /home/runner/work/OfflineParty/OfflineParty
           release_name="OfflineParty-${{ steps.bump_and_tag.outputs.new_version }}"
           7z a -t7z "${release_name}.7z" user_search.py requirements.txt README.md json_handling.py install_windows.ps1 install_macos.sh install_linux.sh get_favorites.py duplicate_finder.py download.py
           zip -r "${release_name}.zip" user_search.py requirements.txt README.md json_handling.py install_windows.ps1 install_macos.sh install_linux.sh get_favorites.py duplicate_finder.py download.py
