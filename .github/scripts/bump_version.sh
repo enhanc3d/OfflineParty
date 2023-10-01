@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Read the current version from a version file (e.g., version.txt)
-current_version=$(cat version.txt)
+current_version=$1
 
 # Split the version into major, minor, and patch components
 IFS='.' read -ra version_parts <<< "$current_version"
@@ -10,7 +10,7 @@ minor="${version_parts[1]}"
 patch="${version_parts[2]}"
 
 # Choose the type of version bump (major, minor, or patch)
-bump_type=$1
+bump_type=$2
 
 if [ "$bump_type" == "major" ]; then
   major=$((major + 1))

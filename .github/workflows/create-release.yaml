@@ -37,6 +37,11 @@ jobs:
             echo "::set-output name=github_only_changes::true"
           fi
         
+      - name: Get latest release version
+        id: latest_version
+        run: |
+          latest_version=$(curl -sH "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r .tag_name | sed 's/^v//')
+          echo "::set-output name=version::$latest_version"
 
       - name: Bump version and create tag
         if: steps.check_files.outputs.github_only_changes == 'false'
@@ -44,7 +49,8 @@ jobs:
         run: |
           cd .github/scripts
           chmod +x ./bump_version.sh
-          new_version=$(./bump_version.sh ${{ github.event.inputs.bump_type }})
+          # Use the latest release version as the current version and pass the bump type
+          new_version=$(./bump_version.sh ${{ steps.latest_version.outputs.version }} ${{ github.event.inputs.bump_type }})
           git tag -a -m "Release v$new_version" "v$new_version"
           echo "::set-output name=new_version::v$new_version"
 
