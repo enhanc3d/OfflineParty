@@ -231,27 +231,33 @@ def main(username):
             for user_data in combined_data_2:
                 if user_data.get("name").lower() == username.lower():
                     found_user = user_data
-                    print("User found in fetched data!")
-                    id_value = found_user.get("id")
-                    if id_value.isdigit():
-                        domain = "kemono.party"
-                    else:
-                        domain = "coomer.party"
-                    api_url = f"https://{domain}/api/{found_user.get('service')}/user/{found_user.get('id')}"
-                    html_url = f"https://{domain}/{found_user.get('service')}/user/{found_user.get('id')}"
-                    service = found_user.get('service')
-                    artist_id = found_user.get('id')
-                    # debug found url -- print(url)
-                    # Set the flag to indicate URL found and exit the function
-                    url_found = True
-                    json_data = generate_json_dictionary_from_data(api_url, html_url)
-                    return_data = get_list_of_user_urls(domain, service, artist_id, api_url), username, json_data
-                    return return_data
+                    break  # Exit the loop once the user is found
 
-            api_url, html_url = input_and_transform_url()  # Get both URLs
-            # debug -- print(api_url, html_url)
-            domain, service, artist_id, username = extract_info(html_url)  # Use the HTML URL for extraction
-            return get_list_of_user_urls(domain, service, artist_id, api_url), username, generate_json_dictionary_from_data(api_url, html_url)  # Pass both URLs to the function
+            if found_user:
+                id_value = found_user.get("id")
+                if id_value.isdigit():
+                    domain = "kemono.party"
+                else:
+                    domain = "coomer.party"
+
+                # If domain is "kemono.party", perform the duplicate check
+                if domain == "kemono.party":
+                    found_user_name = found_user.get("name").lower()
+                    found_user = duplicate_finder(combined_data_2, found_user_name)
+
+                api_url = f"https://{domain}/api/{found_user.get('service')}/user/{found_user.get('id')}"
+                html_url = f"https://{domain}/{found_user.get('service')}/user/{found_user.get('id')}"
+                service = found_user.get('service')
+                artist_id = found_user.get('id')
+
+                # Set the flag to indicate URL found and exit the function
+                url_found = True
+                json_data = generate_json_dictionary_from_data(api_url, html_url)
+                return get_list_of_user_urls(domain, service, artist_id, api_url), username, json_data
+            else:
+                api_url, html_url = input_and_transform_url()  # Get both URLs
+                domain, service, artist_id, username = extract_info(html_url)  # Use the HTML URL for extraction
+                return get_list_of_user_urls(domain, service, artist_id, api_url), username, generate_json_dictionary_from_data(api_url, html_url)  # Pass both URLs to the function
 
         # ------------------ OPTION 2 -------------------
 
