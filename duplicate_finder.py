@@ -6,7 +6,7 @@ def display_options(id_name_service_mapping):
 
 def collect_choices(id_name_service_mapping):
     while True:
-        choices = input("Which one(s) do you want to choose? (Separated by commas) ")
+        choices = input("Which one(s) do you want to choose? (Separated by commas)\nChoice: ")
         try:
             # Parse choices and remove duplicates
             choice_list = list(set(int(choice.strip()) for choice in choices.split(',')))
