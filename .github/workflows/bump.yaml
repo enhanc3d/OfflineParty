@@ -34,7 +34,7 @@ jobs:
           current_version=$(cat .github/scripts/version.txt)
           echo "Current version is: $current_version"
       
-          new_version=$(.github/scripts/bump_version.sh) # Corrected path to the script
+          new_version=$(bash .github/scripts/bump_version.sh)
           echo "New version is: $new_version"
       
           if [[ -z "$new_version" || "$new_version" == .* ]]; then
