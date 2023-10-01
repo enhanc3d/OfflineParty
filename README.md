@@ -18,6 +18,7 @@
     - `-c` or `--coomer`: Download data from coomer
     - `-b` or `--both`: Download data from both kemono and coomer
     - `-r` or `--reset`: Reset (delete) the specific JSON files before downloading
+    - -`u` or `--user`: Allows search for one specific user by their username (Incompatible with the other flags)
 
 4. Enjoy!
 
@@ -29,5 +30,18 @@
 This will reset the `kemono_favorites.json` file, you can use this if for example you accidentally deleted a file, or new ones got added (For example if someone contributted with a higher tier )
 
 You can use flags `-c`, `-b`, `-r` in a similar way.
+
+** User search **
+```bash
+   python3 download.py -u otakugirl90
+```
+
+Using this command will look through your favorites, both kemono and coomer, to make sure we get all matching users.
+It will first search through the local JSON favorite files, but if a match is not found, the user is prompted to:
+
+1.  Check for new favorites (Will find the updated favorite list online and search for the desired user)
+2.  Input the URL manually (Will try to parse the data from the URL, for example: `https://coomer.party/onlyfans/user/otakugirl90` and generate a JSON entry in the according file with the obtainable values)
+
+As of right now, only one user is available for download at a time, but in the future this will be expanded to allow for multiple manual user download at a time
 
 Also, it's my first time working with shell scripts, so if you have any problems do let me know, thanks! 
