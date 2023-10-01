@@ -1,5 +1,3 @@
-import os
-
 def display_options(id_name_service_mapping):
     for i, (artist_service, _) in enumerate(id_name_service_mapping.items(), start=1):
         # Use title() to capitalize each word in the string
@@ -19,22 +17,22 @@ def collect_choices(id_name_service_mapping):
         except ValueError:
             print("Invalid input. Please enter valid numeric choices separated by commas.")
 
-def find_and_return_entries(data_list, target_name):
-    target_name = target_name.lower()
+def find_and_return_entries(data_list, input_username):
+    input_username = input_username.lower()
     potential_matches = []
     
     for item in data_list:
         name = item.get('name', '').capitalize()
         service = item.get('service', '').capitalize()
-        if name.lower() == target_name:
+        if name.lower() == input_username:
             artist_service = f"{name} ({service})"
             potential_matches.append((artist_service, item))
     
     if not potential_matches:
-        print(f"No matching entries found for {target_name.capitalize()}")
+        print(f"No matching entries found for {input_username.capitalize()}")
         return None
 
-    print(f"Multiple creators found for {target_name.capitalize()}:\n")
+    print(f"Multiple creators found for {input_username.capitalize()}:\n")
     for i, (artist_service, _) in enumerate(potential_matches, start=1):
         print(f"{i}. {artist_service}")
     print(f"{len(potential_matches) + 1}. Download all\n")
@@ -70,8 +68,8 @@ if __name__ == "__main__":
         }
     ]
     
-    target_name = input("Enter the username: ").capitalize()
-    selected_entries = find_and_return_entries(data_list, target_name)
+    input_username = "kamuo"
+    selected_entries = find_and_return_entries(data_list, input_username)
 
     if selected_entries:
         print(selected_entries)
