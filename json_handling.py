@@ -13,7 +13,7 @@ def lookup_and_save_user(url, data):
         service = match.group('service')
         user_id = match.group('user_id')
 
-        print(f"Extracted from URL -> Domain: {domain}, Service: {service}, User ID: {user_id}")
+        # debug -- print(f"Extracted from URL -> Domain: {domain}, Service: {service}, User ID: {user_id}")
 
         if user_data := next(
             (item for item in data if item.get('id') == user_id), None
