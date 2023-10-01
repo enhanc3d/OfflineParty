@@ -1,12 +1,6 @@
 name: Create Release
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       bump_type:
