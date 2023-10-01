@@ -66,10 +66,4 @@ jobs:
           body: ${{ steps.create_release_notes.outputs.release_notes }}
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cleanup
-        run: |
-              git config --unset-all user.name
-              git config --unset-all user.email
-        shell: /usr/bin/bash -e {0}
           
