@@ -50,10 +50,9 @@ jobs:
         id: create_release_notes
         run: |
           # Read release notes and save them to a variable
-          release_notes=$(cat release_notes.md)
+          release_notes=$(cat .github/release_notes.md)
           echo "::set-output name=release_notes::$release_notes"
           
-
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
