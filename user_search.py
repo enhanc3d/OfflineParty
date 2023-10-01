@@ -185,6 +185,9 @@ def main(username):
 
     if found_user is not None:
         # Determine the domain based on the format of the `id` field
+        if isinstance(found_user, list) and len(found_user) > 0:
+            found_user = found_user[0]
+
         id_value = found_user.get("id")
         if id_value.isdigit():
             domain = "kemono.party"
