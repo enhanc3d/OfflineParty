@@ -30,12 +30,13 @@ jobs:
       - name: Check affected files
         id: check_files
         run: |
-          changed_files=$(git diff --name-only HEAD^ HEAD)
+          changed_files=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }})
           if echo "$changed_files" | grep -qvE '^\.github/'; then
             echo "::set-output name=github_only_changes::false"
           else
             echo "::set-output name=github_only_changes::true"
           fi
+        
 
       - name: Bump version and create tag
         if: steps.check_files.outputs.github_only_changes == 'false'
