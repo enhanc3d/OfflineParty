@@ -180,7 +180,7 @@ def main(username):
             found_user_name = (user_data.get("name").lower())      
             user_data = duplicate_finder(combined_data, found_user_name)
             found_user = user_data
-            print("-------------- FOUND USER --------------\n", found_user)
+            # debug -- print("-------------- FOUND USER --------------\n", found_user)
             break
 
     if found_user is not None:
