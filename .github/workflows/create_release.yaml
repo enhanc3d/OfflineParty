@@ -1,0 +1,73 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4.1.0
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "2000GHz"
+          git config --global user.email "59731892+2000GHz@users.noreply.github.com"
+
+      - name: Grant execute permissions to the script
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: chmod +x .github/scripts/bump_version.sh
+
+      - name: Bump version and create tag
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: bump_and_tag
+        run: |
+          ...
+      
+      - name: Push tag to repository
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: git push origin ${{ steps.bump_and_tag.outputs.new_version }}
+
+      - name: Compress files for the release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          ...
+          
+      - name: Upload release artifacts
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v3.1.3
+        with:
+          name: ${{ steps.bump_and_tag.outputs.new_version }}
+          path: |
+            "${release_name}.7z"
+            "${release_name}.zip"
+
+      - name: Create Release Notes
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: create_release_notes
+        run: |
+          ...
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: create_release
+        uses: softprops/action-gh-release@v0.1.15
+        with:
+          files: |
+              "${release_name}.7z"
+              "${release_name}.zip"
+          body: ${{ steps.create_release_notes.outputs.release_notes }}
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup
+        run: |
+          git config --unset-all user.name
+          git config --unset-all user.email
