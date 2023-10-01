@@ -143,36 +143,41 @@ def main(username):
     global url_found  # Use the global flag
 
     # Define the file paths
-
-    # Initialize variables to store JSON data
     coomer_json_file_path = "Config/coomer_favorites.json"
     kemono_json_file_path = "Config/kemono_favorites.json"
 
     # Load data from coomer_favorites.json
+    coomer_json_data = None
     try:
         with open(coomer_json_file_path, 'r') as coomer_file:
-            coomer_json_file_path = json.load(coomer_file)
+            coomer_json_data = json.load(coomer_file)
     except FileNotFoundError:
-        print(f"File not found: {coomer_json_file_path}")
-        print("Error loading coomer data.")
+        print(f"File not found: {coomer_json_file_path}. Creating an empty one.")
+        coomer_json_data = []  # Initialize with an empty list
+        with open(coomer_json_file_path, 'w') as coomer_file:
+            json.dump(coomer_json_data, coomer_file)  # Write an empty list to the file
 
     # Load data from kemono_favorites.json
+    kemono_json_data = None
     try:
         with open(kemono_json_file_path, 'r') as kemono_file:
-            kemono_json_file_path = json.load(kemono_file)
+            kemono_json_data = json.load(kemono_file)
     except FileNotFoundError:
-        print(f"File not found: {kemono_json_file_path}")
-        print("Error loading kemono data.")
+        print(f"File not found: {kemono_json_file_path}. Creating an empty one.")
+        kemono_json_data = []  # Initialize with an empty list
+        with open(kemono_json_file_path, 'w') as kemono_file:
+            json.dump(kemono_json_data, kemono_file)  # Write an empty list to the file
 
     # Initialize a list to store the combined data
     combined_data = []
 
     # Check if data from both files is not None and append them to combined_data
-    if coomer_json_file_path is not None:
-        combined_data.extend(coomer_json_file_path)
-    if kemono_json_file_path is not None:
-        combined_data.extend(kemono_json_file_path)
+    if coomer_json_data is not None:
+        combined_data.extend(coomer_json_data)
+    if kemono_json_data is not None:
+        combined_data.extend(kemono_json_data)
 
+    print("Inspecting combined_data:", combined_data)
     # Search for the username in the combined data and print the corresponding dictionary
     found_user = None
     for user_data in combined_data:
