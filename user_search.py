@@ -224,8 +224,8 @@ def main(username):
             if user_choice == "1":
                 os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console
                 print("Fetching artists, this could take a while...")
-                _, coomer_data = get_favorites.main("coomer")
-                _, kemono_data = get_favorites.main("kemono")
+                coomer_data = get_favorites.fetch_json_data_from_option("coomer")
+                kemono_data = get_favorites.fetch_json_data_from_option("kemono")
 
                 combined_data_2 = []
 
