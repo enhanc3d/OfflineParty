@@ -5,7 +5,7 @@
 
 1. Install the required dependencies (Python and the modules it needs) using the install script matching your OS
 
-2. Create a Kemono/Coomer account and/or log in with your default browser
+2. Create a Kemono/Coomer account and/or log in with your default browser **(Not needed if you search by user)**
 
 ## Instructions: 
 
