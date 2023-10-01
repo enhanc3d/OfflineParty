@@ -69,5 +69,7 @@ jobs:
 
       - name: Cleanup
         run: |
-          git config --unset-all user.name
-          git config --unset-all user.email
+              git config --unset-all user.name
+              git config --unset-all user.email
+        shell: /usr/bin/bash -e {0}
+          
