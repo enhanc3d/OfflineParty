@@ -33,8 +33,8 @@ jobs:
           chmod +x ./bump_version.sh
           current_version=$(cat version.txt)
           new_version=$(./bump_version.sh)
-          git tag -a -m "Release $new_version" "$new_version"
-          echo "::set-output name=new_version::$new_version"
+          git tag -a -m "Release v$new_version" "v$new_version"
+          echo "::set-output name=new_version::v$new_version"
 
       - name: Push tag to repository
         run: git push origin ${{ steps.bump_and_tag.outputs.new_version }}
@@ -42,19 +42,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compress files for the release
+        id: compress_files
         run: |
           cd /home/runner/work/OfflineParty/OfflineParty
           release_name="OfflineParty-${{ steps.bump_and_tag.outputs.new_version }}"
           7z a -t7z "${release_name}.7z" user_search.py requirements.txt README.md json_handling.py install_windows.ps1 install_macos.sh install_linux.sh get_favorites.py duplicate_finder.py download.py
           zip -r "${release_name}.zip" user_search.py requirements.txt README.md json_handling.py install_windows.ps1 install_macos.sh install_linux.sh get_favorites.py duplicate_finder.py download.py
+          echo "::set-output name=release_name::$release_name"
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v3.1.3
         with:
           name: ${{ steps.bump_and_tag.outputs.new_version }}
           path: |
-            "${release_name}.7z"
-            "${release_name}.zip"
+            ${{ steps.compress_files.outputs.release_name }}.7z
+            ${{ steps.compress_files.outputs.release_name }}.zip
 
       - name: Create Release Notes
         id: create_release_notes
@@ -69,9 +71,8 @@ jobs:
         with:
           tag_name: ${{ steps.bump_and_tag.outputs.new_version }}  # Specify the tag name here
           files: |
-              "${release_name}.7z"
-              "${release_name}.zip"
+              ${{ steps.compress_files.outputs.release_name }}.7z
+              ${{ steps.compress_files.outputs.release_name }}.zip
           body: ${{ steps.create_release_notes.outputs.release_notes }}
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  
