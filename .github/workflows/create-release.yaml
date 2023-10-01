@@ -54,15 +54,6 @@ jobs:
           git tag -a -m "Release v$new_version" "v$new_version"
           echo "::set-output name=new_version::v$new_version"
 
-      - name: Commit and push updated version.txt
-        if: steps.check_files.outputs.github_only_changes == 'false'
-        run: |
-          git add .github/scripts/version.txt
-          git commit -m "Bump version to ${{ steps.bump_and_tag.outputs.new_version }}"
-          git push origin HEAD:${{ github.ref }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Check and Push tag
         if: steps.check_files.outputs.github_only_changes == 'false'
         run: |
