@@ -1,0 +1,71 @@
+name: Create Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "2000GHz"
+          git config --global user.email "59731892+2000GHz@users.noreply.github.com"
+
+      - name: Bump version and create tag
+        id: bump_and_tag
+        run: |
+          current_version=$(cat version.txt)
+          new_version=$(./scripts/bump_version.sh) # Path to the script
+          git tag -a -m "Release $new_version" "$new_version"
+          echo "::set-output name=new_version::$new_version"
+
+      - name: Push tag to repository
+        run: git push origin ${{ steps.bump_and_tag.outputs.new_version }}
+
+      - name: Compress files for the release
+        run: |
+          release_name="OfflineParty-${{ steps.bump_and_tag.outputs.new_version }}"
+          7z a -t7z "${release_name}.7z" user_search.py requirements.txt README.md json_handling.py install_windows.ps1 install_macos.sh install_linux.sh get_favorites.py duplicate_finder.py download.py
+          zip -r "${release_name}.zip" user_search.py requirements.txt README.md json_handling.py install_windows.ps1 install_macos.sh install_linux.sh get_favorites.py duplicate_finder.py download.py
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.bump_and_tag.outputs.new_version }}
+          path: |
+            "${release_name}.7z"
+            "${release_name}.zip"
+
+      - name: Create Release Notes
+        id: create_release_notes
+        run: |
+          # Read release notes and save them to a variable
+          release_notes=$(cat release_notes.md)
+          echo "::set-output name=release_notes::$release_notes"
+          
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+              "${release_name}.7z"
+              "${release_name}.zip"
+          body: ${{ steps.create_release_notes.outputs.release_notes }}
+        env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup
+        run: |
+          git config --unset-all user.name
+          git config --unset-all user.email
