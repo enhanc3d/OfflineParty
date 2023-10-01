@@ -4,6 +4,7 @@ import requests
 import get_favorites
 from bs4 import BeautifulSoup
 from datetime import datetime
+from duplicate_finder import find_and_return_entries as duplicate_finder
 
 
 def extract_info(url):
@@ -176,7 +177,10 @@ def main(username):
     found_user = None
     for user_data in combined_data:
         if user_data.get("name").lower() == username.lower():
+            found_user_name = (user_data.get("name").lower())      
+            user_data = duplicate_finder(combined_data, found_user_name)
             found_user = user_data
+            print("-------------- FOUND USER --------------\n", found_user)
             break
 
     if found_user is not None:
