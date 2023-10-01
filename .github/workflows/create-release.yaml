@@ -67,9 +67,11 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v0.1.15
         with:
+          tag_name: ${{ steps.bump_and_tag.outputs.new_version }}  # Specify the tag name here
           files: |
               "${release_name}.7z"
               "${release_name}.zip"
           body: ${{ steps.create_release_notes.outputs.release_notes }}
         env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
