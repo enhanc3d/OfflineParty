@@ -21,6 +21,9 @@ jobs:
           git config --global user.name "2000GHz"
           git config --global user.email "59731892+2000GHz@users.noreply.github.com"
 
+      - name: Grant execute permissions to the script
+        run: chmod +x .github/scripts/bump_version.sh
+        
       - name: Bump version and create tag
         id: bump_and_tag
         run: |
