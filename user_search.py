@@ -222,6 +222,7 @@ def main(username):
             # ------------------ OPTION 1 -------------------
             if user_choice == "1":
                 os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console
+                print("Fetching artists, this could take a while...")
                 _, coomer_data = get_favorites.main("coomer")
                 _, kemono_data = get_favorites.main("kemono")
 
