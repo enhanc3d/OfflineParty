@@ -243,7 +243,7 @@ def main(username):
                     artist_id = found_user[0].get('id')
 
                     # Debug line to print the users that will be returned
-                    print("Users to be returned:", found_user)
+                    # print("Users to be returned:", found_user)
 
                     # Set the flag to indicate URL found and exit the function
                     url_found = True
