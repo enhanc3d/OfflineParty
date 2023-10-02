@@ -1,5 +1,5 @@
 
-### Release Notes for version 1.1.2
+### Release Notes for version 1.2.0
 
 **New Functionalities:**
 
