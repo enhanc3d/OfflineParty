@@ -1,3 +1,5 @@
+import os
+
 def display_options(id_name_service_mapping):
     for i, (artist_service, _) in enumerate(id_name_service_mapping.items(), start=1):
         # Use title() to capitalize each word in the string
@@ -25,6 +27,7 @@ def collect_choices(id_name_service_mapping):
 
             return choice_list
         except ValueError:
+            os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console
             print("Invalid input. Please enter valid numeric choices separated by commas.")
             continue
 
