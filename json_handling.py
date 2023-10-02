@@ -21,9 +21,9 @@ def lookup_and_save_user(url, data):
             # debug -- print(f"Found user in provided data: {user_id}")
 
             # Save to the appropriate JSON file
-            if domain == "coomer.party":
+            if domain == "coomer.party" or "coomer.su":
                 save_to_coomer_favorites(user_data)
-            elif domain == "kemono.party":
+            elif domain == "kemono.party" or "kemono.su":
                 save_to_kemono_favorites(user_data)
             else:
                 print(f"No matching domain found for: {domain}")
