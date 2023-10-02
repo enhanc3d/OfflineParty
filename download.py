@@ -6,6 +6,7 @@ import argparse
 import html2text
 import get_favorites
 from tqdm import tqdm
+from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
 from json_handling import lookup_and_save_user as save_artist_json
 from user_search import main as user_search
@@ -163,7 +164,7 @@ def run_with_base_url(url_list, data, json_file):
                         download_file(file_url, post_folder_path, file_name, url)
 
                 content = post.get('content', '')
-                post_url = f"https://{base_url}/{service}/user/{artist_id}/post/{post['id']}"
+                post_url = f"{base_url}/{service.lower()}/user/{artist_id.lower()}/post/{post['id']}"
                 save_content_to_txt(post_folder_path, content, post.get('embed', {}), post_url)
 
 
@@ -201,20 +202,51 @@ def run_with_base_url(url_list, data, json_file):
     return True
 
 
-def save_content_to_txt(folder_name, content, embed_data, post_url):
+def save_content_to_txt(folder_name, content, embed, post_url):
     folder_path = os.path.join(folder_name, "content.txt")
+    comment_section = ""
+
+    try:
+        # Fetch the HTML content from the post_url
+        response = requests.get(post_url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Extract comments
+        comments = soup.find_all('article', class_='comment')
+        comment_list = []
+
+        for comment in comments:
+            user = comment.find('a', class_='comment__name').text
+            message = comment.find('p', class_='comment__message').text
+            timestamp = comment.find('time', class_='timestamp').text
+
+            formatted_comment = f"{user} - {message} - {timestamp}"
+            comment_list.append(formatted_comment)
+
+        # Join comments with line breaks
+        comment_section = '\n'.join(comment_list)
+
+    except Exception as e:
+        print(f"Error fetching comments from {post_url}: {e}")
+
     with open(folder_path, 'w', encoding='utf-8') as f:
+        f.write("[POST URL]\n")
+        f.write(f"{post_url}\n\n")
         f.write("[CONTENT]\n")
         f.write(html2text.html2text(content))
+        f.write("\n")
 
-        if embed_data:
-            f.write("\n[EMBED]\n")
-            f.write(f"Description: {embed_data.get('description', '')}\n")
-            f.write(f"Subject: {embed_data.get('subject', '')}\n")
-            f.write(f"URL: {embed_data.get('url', '')}\n")
+        if embed:
+            f.write("[EMBED]\n")
+            for key, value in embed.items():
+                f.write(f"{key.capitalize()}: {value}\n")
+            f.write("\n")
 
-        f.write("\n[POST URL]\n")
-        f.write(post_url)
+        if comment_section:
+            f.write("[COMMENTS]\n")
+            f.write(comment_section)
+            f.write("\n")
+
 
 
 def main(option):

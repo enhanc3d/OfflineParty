@@ -22,6 +22,8 @@
 
 4. Enjoy!
 
+Note: You'll find a "content.txt" file inside every post's folder, inside it you'll find some relevant information such as the post URL, embedded content and comments where the artist could have included important information, make sure to check it out if you find an empty folder!
+
 ## Example of use
 
 ```bash
