@@ -116,31 +116,23 @@ def load_old_favorites_data(json_file):
     return old_favorites_data
 
 
-def fetch_favorite_artists(option):
+def fetch_json_data_from_option(option):
     """
-    Requests the list of favorite creators from the APIs
-    and extracts some useful data based on the specified option.
+    Fetches the JSON data from the given option ("kemono" or "coomer")
     """
-    create_config('Config')
-
     if option == "kemono":
         primary_cookie_domain = "kemono.party"
         fallback_cookie_domain = "kemono.su"
         JSON_url = 'https://kemono.party/api/v1/account/favorites'
         JSON_fallback_url = 'https://kemono.su/api/v1/account/favorites'
-        json_file = 'Config/kemono_favorites.json'
     elif option == "coomer":
         primary_cookie_domain = "coomer.party"
         fallback_cookie_domain = "coomer.su"
         JSON_url = 'https://coomer.party/api/v1/account/favorites'
         JSON_fallback_url = 'https://coomer.su/api/v1/account/favorites'
-        json_file = 'Config/coomer_favorites.json'
     else:
         print(f"Invalid option: {option}")
-        return [], [], []
-
-    old_favorites_data = load_old_favorites_data(json_file)
-    old_favorites = {artist['id']: artist for artist in old_favorites_data}
+        return None
 
     for cookie_domain, favorites_json_url in [
         (primary_cookie_domain, JSON_url),
@@ -172,7 +164,12 @@ def fetch_favorite_artists(option):
                 favorites_response = session.get(favorites_json_url,
                                                  headers=headers)
                 favorites_response.raise_for_status()
-                break
+                return_value = favorites_response.json()
+
+                # Debugging line
+                # print(f"Number of return values: {len(return_value)}")
+
+                return return_value
             except requests.exceptions.RequestException as e:
                 print(e)
                 print(f"Server error, retrying in {retry_delay} seconds")
@@ -183,41 +180,55 @@ def fetch_favorite_artists(option):
                     print("Couldn't connect to the server, try again later.")
                     continue
 
-        if favorites_response.status_code == 200:
-            favorites_data = favorites_response.json()
-
-            api_url_list = []
-
-            for artist in tqdm(favorites_data, desc="Processing artists"):
-                artist_id = artist['id']  # Extracts ID
-                new_posts = False
-                if artist_id in old_favorites:
-                    old_updated = old_favorites[artist_id]['updated']
-                    updated = artist['updated']
-
-                    new_posts = old_updated != updated  # If the date of the post is different, we understand there are new posts
-                else:
-                    new_posts = True
-
-                if new_posts:
-                    service = artist['service']
-                    get_all_page_urls(cookie_domain,
-                                      service,
-                                      artist_id,
-                                      api_url_list)
-                    # print("----------------------- API URL LIST --------------------------\n", api_url_list)
-                    # safe_print("----------------------- FAVORITES DATA --------------------------")
-                    # for item in favorites_data:
-                    #    safe_print(str(item))
-
-            non_favorites_api_url_list, non_favorite_json_data = check_updates_for_non_favorites(json_file)
-            all_api_urls = api_url_list + non_favorites_api_url_list
-            favorites_data.extend(non_favorite_json_data)
-            # print(all_api_urls, favorites_data)
-            return all_api_urls, favorites_data
-
     print("Failed to fetch favorite artists from primary and fallback URLs.")
-    return [], []
+    return None
+
+
+def fetch_favorite_artists(option):
+    """
+    Requests the list of favorite creators from the APIs
+    and extracts some useful data based on the specified option.
+    """
+    create_config('Config')
+
+    if option not in ["kemono", "coomer"]:
+        print(f"Invalid option: {option}")
+        return [], [], []
+
+    json_file = 'Config/kemono_favorites.json' if option == "kemono" else 'Config/coomer_favorites.json'
+    old_favorites_data = load_old_favorites_data(json_file)
+    old_favorites = {artist['id']: artist for artist in old_favorites_data}
+
+    favorites_data = fetch_json_data_from_option(option)
+
+    if not favorites_data:
+        return [], []
+
+    api_url_list = []
+
+    for artist in tqdm(favorites_data, desc="Processing artists"):
+        artist_id = artist['id']  # Extracts ID
+        new_posts = False
+        if artist_id in old_favorites:
+            old_updated = old_favorites[artist_id]['updated']
+            updated = artist['updated']
+
+            new_posts = old_updated != updated  # If the date of the post is different, we understand there are new posts
+        else:
+            new_posts = True
+
+        if new_posts:
+            service = artist['service']
+            cookie_domain = "kemono.party" if option == "kemono" else "coomer.party"
+            get_all_page_urls(cookie_domain,
+                              service,
+                              artist_id,
+                              api_url_list)
+
+    non_favorites_api_url_list, non_favorite_json_data = check_updates_for_non_favorites(json_file)
+    all_api_urls = api_url_list + non_favorites_api_url_list
+    favorites_data.extend(non_favorite_json_data)
+    return all_api_urls, favorites_data
 
 
 def get_all_page_urls(cookie_domain, service, artist_id, api_url_list):

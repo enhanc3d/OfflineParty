@@ -1,3 +1,5 @@
+import os
+
 def display_options(id_name_service_mapping):
     for i, (artist_service, _) in enumerate(id_name_service_mapping.items(), start=1):
         # Use title() to capitalize each word in the string
@@ -9,23 +11,28 @@ def collect_choices(id_name_service_mapping):
         choices = input("Which one(s) do you want to choose? (Separated by commas)\nChoice: ")
         try:
             # Parse choices and remove duplicates
-            choice_list = list(set(int(choice.strip()) for choice in choices.split(',')))
-            
-            # Check for out-of-range choices
-            invalid_choices = [choice for choice in choice_list if choice < 1 or choice > len(id_name_service_mapping) + 1]
-            if invalid_choices:
+            choice_list = list({int(choice.strip()) for choice in choices.split(',')})
+
+            if invalid_choices := [
+                choice
+                for choice in choice_list
+                if choice < 1 or choice > len(id_name_service_mapping) + 1
+            ]:
                 print(f"Invalid choice(s): {', '.join(map(str, invalid_choices))}. Please choose valid options.")
+                display_options(id_name_service_mapping)  # Display the options again
                 continue
-            
-            # Check for invalid combination: both specific options and "Download All"
+
             # Check for invalid combination: both specific options and "Download All"
             if len(id_name_service_mapping) + 1 in choice_list and len(choice_list) > 1:
                 print("Invalid combination. Please select either specific options or 'Download All'.")
+                display_options(id_name_service_mapping)  # Display the options again
                 continue
 
             return choice_list
         except ValueError:
+            os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console
             print("Invalid input. Please enter valid numeric choices separated by commas.")
+            display_options(id_name_service_mapping)  # Display the options again
             continue
 
 
