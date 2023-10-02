@@ -198,7 +198,7 @@ def main(username):
         print("Obtaining all pages from the artist to proceed... this might take a while.")
 
         # Debug line to print the users that will be returned
-        print("Users to be returned:", found_user)
+        # print("Users to be returned:", found_user)
 
         # Set the flag to indicate URL found and exit the function
         url_found = True
