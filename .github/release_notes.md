@@ -10,6 +10,6 @@
    - Separated the big fetch_favorite_artists function in 2:
       - Retrieval of the JSON favorites data from the server
       - Processing of said data
-      - This helped speed up massively the search for users, as we were calculating all the pages for all the artists unneedingly
+   - This helped speed up massively the search for users, as we were calculating all the pages for all the artists unneedingly
 
 
