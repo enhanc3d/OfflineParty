@@ -1,15 +1,17 @@
 
-### Release Notes for version 1.1.1
+### Release Notes for version 1.1.2
 
-**Fixes**
+**New Functionalities:**
 
-1. **Fixed selection of multiple users when there are duplicates (`user_search.py`):**
-   - The selection of multiple users in the duplicate_finder prompt was causing issues due to wrong returns
+1. **Download comments from posts (`download.py`):**
+   - The script now supports the download for comments, which could be useful in case the artist comments relevant information about the post (passwords, additional links, etc.)
 
-2. **Modularization to allow reuse of useful functions in the rest of the code (`get_favorites.py`):**
-   - Separated the big fetch_favorite_artists function in 2:
-      - Retrieval of the JSON favorites data from the server
-      - Processing of said data
-   - This helped speed up massively the search for users, as we were calculating all the pages for all the artists unneedingly
+2. **Save URL of post to the content.txt (`download.py`):**
+   - URL is saved to the post, in case there's an error downloading and you'd like to check on the page
+
+**Changes**
+
+1. ** (`download.py`):**
+   - Better, more organized structure in the content.txt file
 
 
