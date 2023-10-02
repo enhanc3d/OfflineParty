@@ -19,6 +19,12 @@ def create_artist_id_to_name_mapping(data):
         return {item["id"]: item["name"].capitalize() for item in data if isinstance(item, dict) and "id" in item and "name" in item}
     else:
         return {}  # Return an empty dictionary for unsupported data types
+    
+def sanitize_attachment_name(name):
+    # Remove any URL components
+    name = name.replace("https://", "").replace("http://", "")
+    # Further sanitize the name to remove invalid characters
+    return sanitize_filename(name)
 
 
 def get_with_retry_and_fallback(url, retries=3,
@@ -143,20 +149,23 @@ def run_with_base_url(url_list, data, json_file):
 
                 for attachment in post.get('attachments', []):
                     attachment_url = base_url + attachment.get('path', '')
-                    attachment_name = attachment.get('name', '')
+                    # Sanitize the attachment name
+                    attachment_name = sanitize_attachment_name(attachment.get('name', ''))
                     if attachment_url and attachment_name:
                         download_file(attachment_url, post_folder_path, attachment_name, url)
 
                 file_info = post.get('file')
                 if file_info and 'name' in file_info and 'path' in file_info:
                     file_url = base_url + file_info['path']
-                    file_name = file_info['name']
-
+                    # Sanitize the file name
+                    file_name = sanitize_attachment_name(file_info['name'])
                     if file_url and file_name:
                         download_file(file_url, post_folder_path, file_name, url)
 
                 content = post.get('content', '')
-                save_content_to_txt(post_folder_path, content)
+                post_url = f"https://{base_url}/{service}/user/{artist_id}/post/{post['id']}"
+                save_content_to_txt(post_folder_path, content, post.get('embed', {}), post_url)
+
 
                 # Extract the username from the URL
                 username = url.split('/')[-1].split('?')[0]
@@ -192,10 +201,20 @@ def run_with_base_url(url_list, data, json_file):
     return True
 
 
-def save_content_to_txt(folder_name, content):
+def save_content_to_txt(folder_name, content, embed_data, post_url):
     folder_path = os.path.join(folder_name, "content.txt")
     with open(folder_path, 'w', encoding='utf-8') as f:
+        f.write("[CONTENT]\n")
         f.write(html2text.html2text(content))
+
+        if embed_data:
+            f.write("\n[EMBED]\n")
+            f.write(f"Description: {embed_data.get('description', '')}\n")
+            f.write(f"Subject: {embed_data.get('subject', '')}\n")
+            f.write(f"URL: {embed_data.get('url', '')}\n")
+
+        f.write("\n[POST URL]\n")
+        f.write(post_url)
 
 
 def main(option):
