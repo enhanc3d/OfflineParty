@@ -20,7 +20,26 @@ def create_artist_id_to_name_mapping(data):
         return {item["id"]: item["name"].capitalize() for item in data if isinstance(item, dict) and "id" in item and "name" in item}
     else:
         return {}  # Return an empty dictionary for unsupported data types
-    
+
+
+def get_post_folder_name(post):
+    # Get the post title and strip any whitespace or newline characters
+    title = post.get('title', '').strip()
+
+    # Get the published date or fallback to the added date
+    date = post.get('published') or post.get('added')
+
+    # If there's no title, use the post's id
+    if not title:
+        title = post.get('id', 'Unknown')
+
+    # If there's a date, append it to the title
+    if date:
+        return sanitize_filename(f"{title}_{date}")
+    else:
+        return sanitize_filename(title)
+
+
 def sanitize_attachment_name(name):
     # Remove any URL components
     name = name.replace("https://", "").replace("http://", "")
@@ -138,7 +157,7 @@ def run_with_base_url(url_list, data, json_file):
             data = json.loads(response.text)
 
             for post_num, post in enumerate(data, start=1):
-                post_folder_name = sanitize_filename(sanitize_filename(post.get('title')) + "_" + sanitize_filename(post.get('published'))) if post.get('title') and post.get('published') else sanitize_filename(post.get('published', ''))
+                post_folder_name = get_post_folder_name(post)
                 post_folder_name = sanitize_filename(post_folder_name)
 
                 post_folder_path = os.path.join(platform_folder,
