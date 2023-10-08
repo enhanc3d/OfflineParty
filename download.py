@@ -127,9 +127,6 @@ def run_with_base_url(url_list, data, json_file):
     # debug -- print("------------------- DATA ---------------\n", data)
     # debug -- print("------------------- URL LIST ---------------\n", url_list)
 
-
-    artist_id_to_name = create_artist_id_to_name_mapping(data)
-
     # Initialize an empty set to store processed users
     processed_users = set()
 
@@ -150,7 +147,7 @@ def run_with_base_url(url_list, data, json_file):
             domain = url_parts[2].split(".")[0].capitalize()
             service = url_parts[4].capitalize()
             artist_id = url_parts[6].split("?")[0]  # Split the artist's name by the question mark
-            artist_name = artist_id_to_name.get(artist_id)
+            artist_name = data.get(artist_id)
 
             # Check if the service is Discord
             if service == 'Discord':
@@ -290,10 +287,10 @@ def main(option):
     url_list = []
 
     for option in options:
-        api_pages, json_file = get_favorites.main(option)
+        api_pages, json_data = get_favorites.main(option)
         url_list.extend(api_pages)
-        artist_id_to_name = create_artist_id_to_name_mapping(json_file)
-        run_with_base_url(url_list, artist_id_to_name, json_file)
+        artist_id_to_name = create_artist_id_to_name_mapping(json_data)
+        run_with_base_url(url_list, artist_id_to_name, json_data)
 
 
 def delete_json_file(filename):
@@ -350,12 +347,12 @@ if __name__ == "__main__":
     elif args.user:
         # user = args.user if args.user else str(input("Please type the name of the creator: "))
         user = args.user or str(input("Please type the name of the creator: "))
-        url, username, json_file_path,  = user_search(user)
+        url, username, json_data,  = user_search(user)
         # DEBUG print("-------------------URL----------------------\n",url)
         # DEBUG print("-------------------Username----------------------\n",username)
         # print("-------------------json_file_path----------------------\n",json_file_path)
-        artist_id_to_name = create_artist_id_to_name_mapping(json_file_path)
-        run_with_base_url(url, artist_id_to_name, json_file_path)
+        artist_id_to_name = create_artist_id_to_name_mapping(json_data)
+        run_with_base_url(url, artist_id_to_name, json_data)
     elif args.both:
         if args.reset:
             delete_json_file('Config/kemono_favorites.json')

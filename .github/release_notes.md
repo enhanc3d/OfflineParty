@@ -1,14 +1,11 @@
 
-### Release Notes for version 1.3.2
+### Release Notes for version 1.3.3
 
 
 **Changes**
 
-1. `discord_download.py`
-   - Fixed issue where the script wouldn't fetch all posts from the channel correctly
-
-2. `save_content_to_txt`
-   - Fixed some issues when saving content to the .txt
+1. `download.py`
+   - Fixed issue where the artist's name wasn't being correctly obtained
 
 **Notes (Apply for version 1.3.x)**
 
