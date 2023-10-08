@@ -1,16 +1,18 @@
 
-### Release Notes for version 1.3.0
+### Release Notes for version 1.3.1
 
 **New Functionalities**
 
 1. `discord_download.py`
-   - Added support for discord download!
+   - Creating temp download files in case the user interrupts the download or there is any kind of issue
+2. `download.py`
+   - Same thing as discord download
 
 **Changes**
 
 1. Various modifications to existing scripts to handle the new discord download process
 
-**Notes**
+**Notes (Apply for version 1.3.x)**
 
 1. This is a bit of a rushed release, I haven't had much time to test it, so hopefully we won't have many issues.
 
