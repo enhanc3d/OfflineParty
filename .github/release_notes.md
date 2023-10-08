@@ -1,18 +1,21 @@
 
-### Release Notes for version 1.2.3
+### Release Notes for version 1.3.0
 
 **New Functionalities**
 
-1. `user_search.py`
-   - Now accepts a URL as input :)
+1. `discord_download.py`
+   - Added support for discord download!
 
 **Changes**
 
-1. `user_search.py`
-   - Now searching in the whole kemono/coomer database, making the search easier and more effective
-   - Duplicate finder has been implemented inside the script
+1. Various modifications to existing scripts to handle the new discord download process
 
-2. `download.py`
-   - Simple modification to allow the new functionalities to work
+**Notes**
+
+1. This is a bit of a rushed release, I haven't had much time to test it, so hopefully we won't have many issues.
+
+2. In any case, expect patch releases where I polish the code further!
+
+3. Lastly, I will soon be enabling a discussion thread so you can ask any questions, suggest new features or simply post your errors so I can work on them
 
 
