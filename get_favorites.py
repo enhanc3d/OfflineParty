@@ -68,6 +68,10 @@ def check_updates_for_non_favorites(json_file_path):
                     cookie_domain = "coomer.party"
 
                 api_base_url = f'https://{cookie_domain}/api/{service}/user/{artist_id}'
+                if service.lower() == "discord":
+                    api_url_list.append(api_base_url)
+                    json_dicts.append(entry)
+                    continue
 
                 try:
                     response = requests.get(api_base_url)
@@ -236,6 +240,11 @@ def get_all_page_urls(cookie_domain, service, artist_id, api_url_list):
     Get all API page URLs for a specific artist.
     """
     api_base_url = f'https://{cookie_domain}/api/{service}/user/{artist_id}'
+    
+    if service.lower() == "discord":
+        api_url_list.append(api_base_url)
+        return api_url_list
+    
     offset = 0
     while True:
         api_url = f'{api_base_url}?o={offset}'
@@ -246,7 +255,7 @@ def get_all_page_urls(cookie_domain, service, artist_id, api_url_list):
         api_url_list.append(api_url)
         offset += 50
 
-    return api_url_list  # Move the return statement here, outside the loop
+    return api_url_list
 
 
 def main(option):
