@@ -1,16 +1,14 @@
 
-### Release Notes for version 1.3.1
+### Release Notes for version 1.3.2
 
-**New Functionalities**
-
-1. `discord_download.py`
-   - Creating temp download files in case the user interrupts the download or there is any kind of issue
-2. `download.py`
-   - Same thing as discord download
 
 **Changes**
 
-1. Various modifications to existing scripts to handle the new discord download process
+1. `discord_download.py`
+   - Fixed issue where the script wouldn't fetch all posts from the channel correctly
+
+2. `save_content_to_txt`
+   - Fixed some issues when saving content to the .txt
 
 **Notes (Apply for version 1.3.x)**
 
