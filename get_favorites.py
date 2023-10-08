@@ -34,13 +34,13 @@ def create_config(directory):
     # Check if 'kemono_favorites.json' exists, and create it with an empty array if not
     kemono_file_path = os.path.join(directory, 'kemono_favorites.json')
     if not os.path.exists(kemono_file_path):
-        with open(kemono_file_path, 'w') as kemono_file:
+        with open(kemono_file_path, 'w', encoding='utf-8') as kemono_file:
             json.dump([], kemono_file)
 
     # Check if 'coomer_favorites.json' exists, and create it with an empty array if not
     coomer_file_path = os.path.join(directory, 'coomer_favorites.json')
     if not os.path.exists(coomer_file_path):
-        with open(coomer_file_path, 'w') as coomer_file:
+        with open(coomer_file_path, 'w', encoding='utf-8') as coomer_file:
             json.dump([], coomer_file)
 
 
@@ -51,7 +51,7 @@ def check_updates_for_non_favorites(json_file_path):
     json_dicts = []  # List to store JSON dictionaries
 
     try:
-        with open(json_file_path, 'r') as json_file:
+        with open(json_file_path, 'r', encoding='utf-8') as json_file:
             json_data = json.load(json_file)
 
         for entry in json_data:
@@ -109,7 +109,7 @@ def load_old_favorites_data(json_file):
     """
     old_favorites_data = {}
     try:
-        with open(json_file, 'r') as f:
+        with open(json_file, 'r', encoding='utf-8') as f:
             old_favorites_data = json.load(f)
     except FileNotFoundError:
         print("JSON file not found. It will be created after fetching data.")
