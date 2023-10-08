@@ -66,15 +66,17 @@ def get_list_of_user_urls(found_user_data, all_urls):
 
 def find_and_return_entries(data_list, input_username):
     # Check if input_username is a URL
-    url_pattern = r"https://(?P<cookie_domain>\w+\.party)/(?P<service>\w+)/user/(?P<artist_id>\w+)(\?o=0)?"
+    # Modified regex to account for discord/server URLs
+    url_pattern = r"https://(?P<cookie_domain>\w+\.party)/(?P<service>\w+)/(user|server)/(?P<artist_id>\w+)(\?o=0)?"
     match = re.match(url_pattern, input_username)
     
     if match:
         artist_id = match.group("artist_id")
+        service = match.group("service")
         
-        # Filter the data list to get the corresponding user entry
+        # Filter the data list to get the corresponding user or server entry
         for item in data_list:
-            if item.get("id") == artist_id:
+            if item.get("id") == artist_id and item.get("service") == service:
                 return [item]
                 
     # If not a URL, proceed with the original logic
@@ -115,12 +117,12 @@ def find_and_return_entries(data_list, input_username):
 def main(input_username):
     combined_data = fetch_creator_data()
     matched_entries = find_and_return_entries(combined_data, input_username)
-    
+
+    # Example URL and username for demonstration
+    example_url = "https://kemono.party/patreon/user/19627910"
+    example_username = "otakugirl90"
+
     while not matched_entries:
-        # Example URL and username for demonstration
-        example_url = "https://kemono.party/patreon/user/19627910"
-        example_username = "otakugirl90"
-        
         choice = input(f"No matching entries found for {input_username.capitalize()}.\n"
                        f"Did you spell the URL or username correctly?\n"
                        f"Example URL: {example_url}\n"
