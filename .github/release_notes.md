@@ -7,6 +7,9 @@
 1. `discord_download.py`
    - Fixed issue where the script wouldn't fetch all posts from the channel correctly
 
+2. `save_content_to_txt`
+   - Fixed some issues when saving content to the .txt
+
 **Notes (Apply for version 1.3.x)**
 
 1. This is a bit of a rushed release, I haven't had much time to test it, so hopefully we won't have many issues.
