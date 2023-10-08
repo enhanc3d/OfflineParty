@@ -65,8 +65,8 @@ jobs:
         run: |
           cd /home/runner/work/OfflineParty/OfflineParty
           release_name="OfflineParty-${{ steps.bump_and_tag.outputs.new_version }}"
-          7z a -t7z "${release_name}.7z" user_search.py requirements.txt README.md json_handling.py install_windows.ps1 install_macos.sh install_linux.sh get_favorites.py download.py
-          zip -r "${release_name}.zip" user_search.py requirements.txt README.md json_handling.py install_windows.ps1 install_macos.sh install_linux.sh get_favorites.py download.py
+          7z a -t7z "${release_name}.7z" user_search.py requirements.txt README.md json_handling.py install_windows.ps1 install_macos.sh install_linux.sh get_favorites.py download.py discord_download.py
+          zip -r "${release_name}.zip" user_search.py requirements.txt README.md json_handling.py install_windows.ps1 install_macos.sh install_linux.sh get_favorites.py download.py discord_download.py
           echo "::set-output name=release_name::$release_name"
 
       - name: Upload release artifacts
