@@ -8,8 +8,9 @@ import get_favorites
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
-from json_handling import lookup_and_save_user as save_artist_json
 from user_search import main as user_search
+from json_handling import lookup_and_save_user as save_artist_json
+from discord_download import scrape_discord_server as discord_download
 
 
 # Map Kemono artist IDs to their names
@@ -130,17 +131,21 @@ def run_with_base_url(url_list, data, json_file):
     current_artist_url = None
 
     try:
-        for url in tqdm(url_list, desc="Downloading pages..."): # Wrong number of pages from artist being shown
-
-            # Extract the domain, platform, and artist name from the URL
+        for url in tqdm(url_list, desc="Downloading pages..."):
             url_parts = url.split("/")
             if len(url_parts) < 7:
                 print(f"Unexpected URL structure: {url}")
                 continue
+
             domain = url_parts[2].split(".")[0].capitalize()
             service = url_parts[4].capitalize()
-            artist_id = url_parts[6].split("?")[0] # Split the artist's name by the question mark
+            artist_id = url_parts[6].split("?")[0]  # Split the artist's name by the question mark
             artist_name = artist_id_to_name.get(artist_id)
+
+            # Check if the service is Discord
+            if service == 'Discord':
+                discord_download(artist_id)
+                continue  # skip the rest of the loop and move to the next URL
 
             # debug -- print("------------------- DOMAIN ---------------------", domain)
             # debug -- print("------------------- SERVICE ---------------------", service)
@@ -188,7 +193,6 @@ def run_with_base_url(url_list, data, json_file):
                 content = post.get('content', '')
                 post_url = f"{base_url}/{service.lower()}/user/{artist_id.lower()}/post/{post['id']}"
                 save_content_to_txt(post_folder_path, content, post.get('embed', {}), post_url)
-
 
                 # Extract the username from the URL
                 username = url.split('/')[-1].split('?')[0]
