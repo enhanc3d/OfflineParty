@@ -94,9 +94,9 @@ def get_post_folder_name(post):
         return sanitize_filename(post.get('id', 'Unknown'))
 
 
-def fetch_discord_posts(channel_id):
+def fetch_discord_posts(channel_id, skip_value):
     """Fetch posts for a given channel."""
-    response = requests.get(f"{BASE_URL}/api/discord/channel/{channel_id}?skip=0")
+    response = requests.get(f"{BASE_URL}/api/discord/channel/{channel_id}?skip={skip_value}")
     if response.status_code == 200:
         return response.json()
     return []
@@ -147,35 +147,49 @@ def scrape_discord_server(server_id):
         print(f"Fetching posts from channel: {channel['name']}...\n")
         channel_path = os.path.join(base_path, channel['name'])
 
-        posts = fetch_discord_posts(channel['id'])
-        for post in posts:
-            post_folder_name = get_post_folder_name(post)
-            post_folder_path = os.path.join(channel_path, post_folder_name)
+        skip_value = 0
+        last_post_id = None
+        while True:
+            posts = fetch_discord_posts(channel['id'], skip_value)
+            if not posts:
+                break
 
-            # If preference is to save all in the channel folder, adjust paths
-            if download_preference == '2':
-                post_folder_path = channel_path
-                post_date_prefix = f"{post_folder_name}_"
-            else:
-                post_date_prefix = ""
+            current_last_post_id = posts[-1]['id']
 
-            if not os.path.exists(post_folder_path):
-                os.makedirs(post_folder_path)
+            if last_post_id == current_last_post_id:
+                break  # Break the loop if the last post ID starts repeating
 
-            for attachment in post.get('attachments', []):
-                attachment_url = BASE_URL + attachment.get('path', '')
-                attachment_name = sanitize_attachment_name(post_date_prefix + attachment.get('name', ''))
-                if attachment_url and attachment_name:
-                    download_file(attachment_url, post_folder_path, attachment_name, BASE_URL, artist_name_or_id, channel['name'])
+            last_post_id = current_last_post_id  # Update the last_post_id for the next iteration
+            skip_value += 10  # Increment skip value for the next batch
 
-            save_content_to_txt(post_folder_path, post.get('content', ''), post.get('embed', {}), post)
+            for post in posts:
+                post_folder_name = get_post_folder_name(post)
+                post_folder_path = os.path.join(channel_path, post_folder_name)
+
+                # If preference is to save all in the channel folder, adjust paths
+                if download_preference == '2':
+                    post_folder_path = channel_path
+                    post_date_prefix = f"{post_folder_name}_"
+                else:
+                    post_date_prefix = ""
+
+                if not os.path.exists(post_folder_path):
+                    os.makedirs(post_folder_path)
+
+                for attachment in post.get('attachments', []):
+                    attachment_url = BASE_URL + attachment.get('path', '')
+                    attachment_name = sanitize_attachment_name(post_date_prefix + attachment.get('name', ''))
+                    if attachment_url and attachment_name:
+                        download_file(attachment_url, post_folder_path, attachment_name, BASE_URL, artist_name_or_id, channel['name'])
+
+                save_content_to_txt(post_folder_path, post.get('content', ''), post.get('embed', {}), post)
 
         print(f"Finished fetching posts from channel: {channel['name']}\n")
 
     print(f"\n{'='*40}")
     print("Download complete!")
     print(f"{'='*40}\n")
-    
+
     # Call save_to_kemono_favorites to save the data of the Discord server
     creators_list = fetch_creator_data()
     artist_data = next((item for item in creators_list if item['id'] == server_id), None)
