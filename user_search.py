@@ -1,269 +1,150 @@
-import re
 import os
-import json
+import re
 import requests
 import get_favorites
-from bs4 import BeautifulSoup
-from datetime import datetime
-from duplicate_finder import find_and_return_entries as duplicate_finder
 
-def extract_info(url):
-    # Define regular expressions for extracting domain, service, and id
-    domain_pattern = r"https://(.*?)/"
-    service_pattern = r"/([^/]+)/user/"
-    id_pattern = r"user/([^?]+)"
 
-    # Extract domain, service, and id using regular expressions
-    if url is None:
-        print("Error: URL is None in extract_info")
-        return None, None, None, None
+def fetch_creator_data():
+    # Fetching creator data from kemono and coomer using the new API endpoint
+    kemono_data = requests.get("https://kemono.party/api/creators").json()
+    coomer_data = requests.get("https://coomer.party/api/creators").json()
 
-    domain_match = re.search(domain_pattern, url)
-    service_match = re.search(service_pattern, url)
-    id_match = re.search(id_pattern, url)
+    return kemono_data + coomer_data
 
-    if domain_match and service_match and id_match:
-        domain = domain_match.group(1)
-        service = service_match.group(1)
-        artist_id = id_match.group(1)
 
-        # Initialize username as None
-        username = None
+def display_options(id_name_service_mapping):
+    for i, (artist_service, _) in enumerate(id_name_service_mapping.items(), start=1):
+        # Use title() to capitalize each word in the string
+        print(f"{i}. {artist_service.title()}")
+    print(f"{len(id_name_service_mapping) + 1}. Download all\n")
 
-        if "coomer" in domain:
-            username = artist_id
-        else:
-            # Load the website and parse HTML to find the username
-            response = requests.get(url)
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.content, 'html.parser')
-                meta_tag = soup.find('meta', attrs={'name': 'artist_name', 'content': True})
-                if meta_tag:
-                    username = meta_tag['content']
-        return domain, service, artist_id, username
 
-def generate_json_dictionary_from_data(api_url, html_url):
-    # Get the current date and time
-    current_datetime = datetime.utcnow()
+def collect_choices(id_name_service_mapping):
+    while True:
+        choices = input("Which one(s) do you want to choose? (Separated by commas)\nChoice: ")
+        try:
+            # Parse choices and remove duplicates
+            choice_list = list({int(choice.strip()) for choice in choices.split(',')})
 
-    # Format the datetime
-    formatted_datetime = current_datetime.strftime('%a, %d %b %Y %H:%M:%S GMT')
+            if invalid_choices := [
+                choice
+                for choice in choice_list
+                if choice < 1 or choice > len(id_name_service_mapping) + 1
+            ]:
+                print(f"Invalid choice(s): {', '.join(map(str, invalid_choices))}. Please choose valid options.")
+                display_options(id_name_service_mapping)  # Display the options again
+                continue
 
-    # Define regular expressions for extracting domain, service, and id
-    domain_pattern = r"https://(.*?)/"
-    service_pattern = r"/([^/]+)/user/"
-    id_pattern = r"user/([^?]+)"
+            # Check for invalid combination: both specific options and "Download All"
+            if len(id_name_service_mapping) + 1 in choice_list and len(choice_list) > 1:
+                print("Invalid combination. Please select either specific options or 'Download All'.")
+                display_options(id_name_service_mapping)  # Display the options again
+                continue
 
-    # Extract domain, service, and id using regular expressions
-    domain_match = re.search(domain_pattern, api_url)
-    service_match = re.search(service_pattern, api_url)
-    id_match = re.search(id_pattern, api_url)
+            return choice_list
+        except ValueError:
+            os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console
+            print("Invalid input. Please enter valid numeric choices separated by commas.")
+            display_options(id_name_service_mapping)  # Display the options again
+            continue
 
-    if domain_match and service_match and id_match:
-        domain = domain_match.group(1)
-        service = service_match.group(1)
-        artist_id = id_match.group(1)
 
-        # Initialize username as None
-        username = None
-
-        if "coomer" in domain:
-            username = artist_id
-        elif "kemono" in domain:
-            # For KEMONO domain, load the website and parse HTML to find the username
-            response = requests.get(html_url)
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.content, 'html.parser')
-                if meta_tag := soup.find(
-                    'meta', attrs={'name': 'artist_name', 'content': True}
-                ):
-                    username = meta_tag['content']
-
-        # Create the dictionary
-        result = {
-            "faved_seq": "UNKNOWN",
-            "id": artist_id,
-            "indexed": "UNKNOWN",
-            "last_imported": "UNKNOWN",
-            "name": username if username else "UNKNOWN",
-            "service": service,
-            "updated": formatted_datetime
-        }
-
-        # Update the "indexed" key if its value is "UNKNOWN"
-        if result["indexed"] == "UNKNOWN":
-            result["indexed"] = formatted_datetime
-
-        return [result]
-    else:
-        return None
-
-# Define a flag to indicate whether the URL has been found
-url_found = False
-
-def input_and_transform_url():
-    valid_url = False
-
-    while not valid_url:
-        # Ask the user for input URL
-        os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console
-        input_url = input("Please, input the URL of the artist, for example:\nhttps://coomer.party/onlyfans/user/otakugirl90\nhttps://kemono.party/patreon/user/81088374\nURL: ")
-
-        # Define a regular expression pattern to match allowed domains
-        allowed_domains = r"(coomer\.party|coomer\.su|kemono\.party|kemono\.su)"
-
-        # Define the expected input URL pattern
-        input_expected_pattern = f"https://({allowed_domains})/([^/]+)/user/([^/]+)"
-
-        # Use regular expressions to validate the input URL
-        if re.match(input_expected_pattern, input_url):
-            # Transform the input URL for API calls
-            url_parts = input_url.split('/')
-            transformed_url = f"https://{url_parts[2]}/api/{url_parts[3]}/user/{url_parts[5]}"
-            return transformed_url, input_url if transformed_url and input_url else (None, None)  # Return both transformed and original URL
-        else:
-            print("Invalid input URL format. Please enter a valid URL.")
-
-def get_list_of_user_urls(domain, service, artist_id, url):
-    global url_found  # Use the global flag
-    url = [url]  # Convert to list for compatibility
-    post_pages = get_favorites.get_all_page_urls(domain, service, artist_id, url)
-    post_pages.pop(0)  # Remove the original URL from the list
-
-    # Check if the URL was found and set the flag accordingly
-    return post_pages
-
-def main(username):
-    global url_found  # Use the global flag
-
-    # Define the file paths
-    coomer_json_file_path = "Config/coomer_favorites.json"
-    kemono_json_file_path = "Config/kemono_favorites.json"
-
-    # Load data from coomer_favorites.json
-    coomer_json_data = None
-    try:
-        with open(coomer_json_file_path, 'r') as coomer_file:
-            coomer_json_data = json.load(coomer_file)
-    except FileNotFoundError:
-        print(f"File not found: {coomer_json_file_path}. Creating an empty one.")
-        coomer_json_data = []  # Initialize with an empty list
-        with open(coomer_json_file_path, 'w') as coomer_file:
-            json.dump(coomer_json_data, coomer_file)  # Write an empty list to the file
-
-    # Load data from kemono_favorites.json
-    kemono_json_data = None
-    try:
-        with open(kemono_json_file_path, 'r') as kemono_file:
-            kemono_json_data = json.load(kemono_file)
-    except FileNotFoundError:
-        print(f"File not found: {kemono_json_file_path}. Creating an empty one.")
-        kemono_json_data = []  # Initialize with an empty list
-        with open(kemono_json_file_path, 'w') as kemono_file:
-            json.dump(kemono_json_data, kemono_file)  # Write an empty list to the file
-
-    # Initialize a list to store the combined data
-    combined_data = []
-
-    # Check if data from both files is not None and append them to combined_data
-    if coomer_json_data is not None:
-        combined_data.extend(coomer_json_data)
-    if kemono_json_data is not None:
-        combined_data.extend(kemono_json_data)
-
-    # Search for the username in the combined data
-    found_user = duplicate_finder(combined_data, username)
-
-    if found_user is not None:
-        # Determine the domain based on the format of the `id` field
-        if isinstance(found_user, list) and len(found_user) > 0:
-            found_user = found_user[0]
-
-        id_value = found_user.get("id")
-        if id_value.isdigit():
+def get_list_of_user_urls(found_user_data, all_urls):
+    for entry in found_user_data:
+        artist_id = entry.get("id")
+        if artist_id.isdigit():
             domain = "kemono.party"
-            json_file_path = kemono_json_file_path
         else:
             domain = "coomer.party"
-            json_file_path = coomer_json_file_path
-
-        # Extract relevant data from the found_user dictionary
-        service = found_user.get("service")
-        artist_id = found_user.get("id")
-
-        # Construct the URL
-        url = f"https://{domain}/api/{service}/user/{artist_id}"
-
-        print("User found in local data!")
-        print("Obtaining all pages from the artist to proceed... this might take a while.")
-
-        # Debug line to print the users that will be returned
-        # print("Users to be returned:", found_user)
-
-        # Set the flag to indicate URL found and exit the function
-        url_found = True
-
-        return get_list_of_user_urls(domain, service, artist_id, url), username, json_file_path
-
-    else:
-        # If user not found, ask the user for next steps
-        while True:  # Keep looping until a valid choice is made
-            os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console
-            user_choice = input("User not found in local data. Would you like to:\n"
-                                "1. Check for new favorites\n"
-                                "2. Input the URL manually\n"
-                                "Please enter your choice (1/2): ")
-
-            # ------------------ OPTION 1 -------------------
-            if user_choice == "1":
-                os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console
-                print("Fetching artists; this could take a while...")
-                coomer_data = get_favorites.fetch_json_data_from_option("coomer")
-                kemono_data = get_favorites.fetch_json_data_from_option("kemono")
-
-                combined_data_2 = []
-
-                if coomer_data is not None:
-                    combined_data_2.extend(coomer_data)
-                if kemono_data is not None:
-                    combined_data_2.extend(kemono_data)
-
-                found_user = duplicate_finder(combined_data_2, username)
-
-                if found_user:
-                    id_value = found_user[0].get("id")
-                    if id_value.isdigit():
-                        domain = "kemono.party"
-                    else:
-                        domain = "coomer.party"
-
-                    api_url = f"https://{domain}/api/{found_user[0].get('service')}/user/{found_user[0].get('id')}"
-                    html_url = f"https://{domain}/{found_user[0].get('service')}/user/{found_user[0].get('id')}"
-                    service = found_user[0].get('service')
-                    artist_id = found_user[0].get('id')
-
-                    # Debug line to print the users that will be returned
-                    # print("Users to be returned:", found_user)
-
-                    # Set the flag to indicate URL found and exit the function
-                    url_found = True
-                    json_data = generate_json_dictionary_from_data(api_url, html_url)
-                    return get_list_of_user_urls(domain, service, artist_id, api_url), username, json_data
-                else:
-                    api_url, html_url = input_and_transform_url()  # Get both URLs
-                    domain, service, artist_id, username = extract_info(html_url)  # Use the HTML URL for extraction
-                    return get_list_of_user_urls(domain, service, artist_id, api_url), username, generate_json_dictionary_from_data(api_url, html_url)  # Pass both URLs to the function
-
-            # ------------------ OPTION 2 -------------------
-            elif user_choice == "2":
-                api_url, html_url = input_and_transform_url()  # Get both URLs
-                domain, service, artist_id, username = extract_info(html_url)  # Use the HTML URL for extraction
-                return get_list_of_user_urls(domain, service, artist_id, api_url), username, generate_json_dictionary_from_data(api_url, html_url)  # Pass both URLs to the function
-
-            else:
-                os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console
-                print("Invalid choice. Please enter either 1 or 2.")
+        service = entry.get("service")
+        user_url = f"https://{domain}/api/{service}/user/{artist_id}"
+        post_pages = get_favorites.get_all_page_urls(domain, service, artist_id, [user_url])
+        post_pages.pop(0)
+    all_urls.extend(post_pages)
+    return all_urls
 
 
-# Example usage:
-# main("alexapearl")
+def find_and_return_entries(data_list, input_username):
+    # Check if input_username is a URL
+    url_pattern = r"https://(?P<cookie_domain>\w+\.party)/(?P<service>\w+)/user/(?P<artist_id>\w+)(\?o=0)?"
+    match = re.match(url_pattern, input_username)
+    
+    if match:
+        artist_id = match.group("artist_id")
+        
+        # Filter the data list to get the corresponding user entry
+        for item in data_list:
+            if item.get("id") == artist_id:
+                return [item]
+                
+    # If not a URL, proceed with the original logic
+    input_username = input_username.strip().lower()
+    potential_matches = []
+
+    for item in data_list:
+        name = item.get('name', '').strip().lower()
+        service = item.get('service', '').capitalize()
+        if name == input_username:
+            artist_service = f"{name.capitalize()} ({service})"
+            potential_matches.append((artist_service, item))
+
+    # If no matches found
+    if not potential_matches:
+        print(f"No matching entries found for {input_username.capitalize()}")
+        return None
+
+    # If only one match found
+    if len(potential_matches) == 1:
+        artist_service, entry = potential_matches[0]
+        return [entry]
+
+    # If multiple matches found
+    print(f"Multiple creators found for {input_username.capitalize()}:\n")
+    display_options(dict(potential_matches))
+
+    choice_list = collect_choices(dict(potential_matches))
+
+    # If the choice is "Download all", return all the matches
+    if len(choice_list) == 1 and choice_list[0] == len(potential_matches) + 1:
+        return [entry[1] for entry in potential_matches]
+
+    # For specific choices, return selected entries
+    return [potential_matches[i - 1][1] for i in choice_list]
+
+
+def main(input_username):
+    combined_data = fetch_creator_data()
+    matched_entries = find_and_return_entries(combined_data, input_username)
+
+    # Example URL and username for demonstration
+    example_url = "https://kemono.party/patreon/user/19627910"
+    example_username = "otakugirl90"
+
+    while not matched_entries:
+        choice = input(f"No matching entries found for {input_username.capitalize()}.\n"
+                       f"Did you spell the URL or username correctly?\n"
+                       f"Example URL: {example_url}\n"
+                       f"Example Username: {example_username}\n"
+                       "Would you like to try again? (yes/no): ").strip().lower()
+
+        if choice == 'yes':
+            input_username = input("Please enter the correct URL or username: ")
+            matched_entries = find_and_return_entries(combined_data, input_username)
+        else:
+            print("Exiting the program.")
+            return None, None, None
+
+    all_urls = []
+    for entry in matched_entries:
+        all_urls.extend(get_list_of_user_urls([entry], []))
+
+    # Extract username and json_file_path (entry) from the first matched entry
+    username = matched_entries[0].get('name', '').strip().lower()
+    json_file_path = matched_entries[0]
+    return all_urls, username, json_file_path
+
+
+
+# Example function call for demonstration purposes
+# main("https://kemono.party/gumroad/user/3452671279253")
+# main("kamuo")

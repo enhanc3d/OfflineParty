@@ -15,7 +15,10 @@ from user_search import main as user_search
 # Map Kemono artist IDs to their names
 def create_artist_id_to_name_mapping(data):
     if isinstance(data, dict):
-        return {artist_id: artist_name.capitalize() for artist_id, artist_name in data.items()}
+        if "id" in data and "name" in data:
+            return {data["id"]: data["name"].capitalize()}
+        else:
+            return {}
     elif isinstance(data, list):
         return {item["id"]: item["name"].capitalize() for item in data if isinstance(item, dict) and "id" in item and "name" in item}
     else:
