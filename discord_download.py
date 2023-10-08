@@ -186,8 +186,14 @@ def scrape_discord_server(server_id):
 
 
 def download_file(url, folder_name, file_name, artist_url, artist_name_or_id, channel):
-    # sourcery skip: extract-method
     folder_path = os.path.join(folder_name, file_name)
+    temp_folder_path = os.path.join(folder_name, f"{file_name}.temp")
+
+    # If a temporary file exists, remove it to restart the download
+    if os.path.exists(temp_folder_path):
+        os.remove(temp_folder_path)
+
+    # If the final file exists, skip the download
     if os.path.exists(folder_path):
         print(f"Skipping download: {file_name} already exists")
         return
@@ -201,17 +207,21 @@ def download_file(url, folder_name, file_name, artist_url, artist_name_or_id, ch
                             leave=True,
                             desc=file_name)
 
-        with open(folder_path, 'wb') as f:
+        # Use a temporary file for the download process
+        with open(temp_folder_path, 'wb') as f:
             for data in response.iter_content(1024):
                 progress_bar.update(len(data))
                 f.write(data)
 
         progress_bar.close()
 
+        # Rename the temporary file to the final file name
+        os.rename(temp_folder_path, folder_path)
+
         print(f"Finished downloading: {file_name} from {artist_url}")
         clear_console(artist_name_or_id, channel)
 
 
 if __name__ == "__main__":
-    SERVER_ID = "485244986854735874" # Example ID
+    SERVER_ID = "485244986854735874"  # Example ID
     scrape_discord_server(SERVER_ID)

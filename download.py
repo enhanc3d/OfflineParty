@@ -80,8 +80,14 @@ def get_with_retry_and_fallback(url, retries=3,
 
 
 def download_file(url, folder_name, file_name, artist_url):
-    # sourcery skip: extract-method
     folder_path = os.path.join(folder_name, file_name)
+    temp_folder_path = os.path.join(folder_name, file_name + ".temp")
+
+    # If a temporary file exists, remove it to restart the download
+    if os.path.exists(temp_folder_path):
+        os.remove(temp_folder_path)
+
+    # If the final file exists, skip the download
     if os.path.exists(folder_path):
         print(f"Skipping download: {file_name} already exists")
         return
@@ -94,12 +100,16 @@ def download_file(url, folder_name, file_name, artist_url):
                             unit_scale=True,
                             leave=False)
 
-        with open(folder_path, 'wb') as f:
+        # Use a temporary file for the download process
+        with open(temp_folder_path, 'wb') as f:
             for data in response.iter_content(1024):
                 progress_bar.update(len(data))
                 f.write(data)
 
         progress_bar.close()
+
+        # Rename the temporary file to the final file name
+        os.rename(temp_folder_path, folder_path)
 
         if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
             print("ERROR, something went wrong")
