@@ -6,8 +6,8 @@ import get_favorites
 
 def fetch_creator_data():
     # Fetching creator data from kemono and coomer using the new API endpoint
-    kemono_data = requests.get("https://kemono.party/api/creators").json()
-    coomer_data = requests.get("https://coomer.party/api/creators").json()
+    kemono_data = requests.get("https://kemono.su/api/v1/creators.txt").json()
+    coomer_data = requests.get("https://coomer.su/api/v1/creators.txt").json()
 
     return kemono_data + coomer_data
 
@@ -53,9 +53,9 @@ def get_list_of_user_urls(found_user_data, all_urls):
     for entry in found_user_data:
         artist_id = entry.get("id")
         if artist_id.isdigit():
-            domain = "kemono.party"
+            domain = "kemono.su"
         else:
-            domain = "coomer.party"
+            domain = "coomer.su"
         service = entry.get("service")
         user_url = f"https://{domain}/api/{service}/user/{artist_id}"
         post_pages = get_favorites.get_all_page_urls(domain, service, artist_id, [user_url])
@@ -67,7 +67,7 @@ def get_list_of_user_urls(found_user_data, all_urls):
 def find_and_return_entries(data_list, input_username):
     # Check if input_username is a URL
     # Modified regex to account for discord/server URLs
-    url_pattern = r"https://(?P<cookie_domain>\w+\.party)/(?P<service>\w+)/(user|server)/(?P<artist_id>\w+)(\?o=0)?"
+    url_pattern = r"https://(?P<cookie_domain>\w+\.su)/(?P<service>\w+)/(user|server)/(?P<artist_id>\w+)(\?o=0)?"
     match = re.match(url_pattern, input_username)
     
     if match:
@@ -119,7 +119,7 @@ def main(input_username):
     matched_entries = find_and_return_entries(combined_data, input_username)
 
     # Example URL and username for demonstration
-    example_url = "https://kemono.party/patreon/user/19627910"
+    example_url = "https://kemono.su/patreon/user/19627910"
     example_username = "otakugirl90"
 
     while not matched_entries:
@@ -148,5 +148,5 @@ def main(input_username):
 
 
 # Example function call for demonstration purposes
-# main("https://kemono.party/gumroad/user/3452671279253")
+# main("https://kemono.su/gumroad/user/3452671279253")
 # main("kamuo")
