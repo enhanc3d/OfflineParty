@@ -1,32 +1,37 @@
 import re
 import json
+import requests
 
 
 # Look up the user in the provided data and save to the appropriate JSON file
-def lookup_and_save_user(url, data):
+def lookup_and_save_user(url):
+    kemono_data = requests.get("https://kemono.su/api/v1/creators.txt").json()
+    coomer_data = requests.get("https://coomer.su/api/v1/creators.txt").json() 
     # Regular expression to extract domain, service, and user ID/name from URL
-    pattern = r'https://(?P<domain>\w+\.(?:party|su))/api/(?P<service>[\w/]+)/(?P<user_id>[\w\d]+)(\?o=\d+)?'
+    pattern = r'https://(?P<domain>\w+\.(?:party|su))/api/v1/(?P<service>[\w/]+)/(?P<user_id>[\w\d]+)(\?o=\d+)?'
     if match := re.match(pattern, url):
 
-        # Extract individual groups for debugging
+        # Extract individual groups
         domain = match.group('domain')
         service = match.group('service')
         user_id = match.group('user_id')
 
-        # debug -- print(f"Extracted from URL -> Domain: {domain}, Service: {service}, User ID: {user_id}")
+        if domain in ["coomer.party", "coomer.su"]:
+            data = coomer_data
+        elif domain in ["kemono.party", "kemono.su"]:
+            data = kemono_data
+        else:
+            print(f"No matching domain found for: {domain}")
+            return
 
-        if user_data := next(
-            (item for item in data if item.get('id') == user_id), None
-        ):  # Don't give up!
-            # debug -- print(f"Found user in provided data: {user_id}")
+        user_data = next((item for item in data if item.get('id') == user_id), None)
 
+        if user_data:
             # Save to the appropriate JSON file
-            if domain == "coomer.party" or "coomer.su":
+            if domain in ["coomer.party", "coomer.su"]:
                 save_to_coomer_favorites(user_data)
-            elif domain == "kemono.party" or "kemono.su":
+            elif domain in ["kemono.party", "kemono.su"]:
                 save_to_kemono_favorites(user_data)
-            else:
-                print(f"No matching domain found for: {domain}")
         else:
             print(f"No user matched in the provided data for URL: {url}")
     else:
