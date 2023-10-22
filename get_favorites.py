@@ -62,7 +62,7 @@ def check_updates_for_non_favorites(json_file_path):
             old_date = entry.get("updated")
 
             if faved_seq == "UNKNOWN":
-                if artist_id.isdigit():
+                if artist_id.isdigit() and service != "fansly":
                     cookie_domain = "kemono.su"
                 else:
                     cookie_domain = "coomer.su"

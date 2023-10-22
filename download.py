@@ -122,23 +122,19 @@ def download_file(url, folder_name, file_name, artist_url):
 
 
 def run_with_base_url(url_list, data, json_file):
+    # print("------------------- DATA ---------------\n", data)
+    # print("------------------- URL LIST ---------------\n", url_list)
+    print(f"Data type: {type(data)}")
 
-    # Use the create_artist_id_to_name_mapping function to get the mapping
-    # debug -- print("------------------- DATA ---------------\n", data)
-    # debug -- print("------------------- URL LIST ---------------\n", url_list)
-
-    # Initialize an empty set to store processed users
     processed_users = set()
-
-    # Initialize a variable to keep track of the current artist
-
     current_artist = None
-
-    # Initialize a variable to keep track of the current artist's URL
     current_artist_url = None
 
+    previous_url = None  # Initialize a variable to keep track of the previous URL
+    previous_artist_id = None  # Initialize a variable to keep track of the previous artist ID
+
     try:
-        for url in tqdm(url_list, desc="Downloading pages..."):
+        for i, url in enumerate(tqdm(url_list, desc="Downloading pages...")):
             url_parts = url.split("/")
             if len(url_parts) < 7:
                 print(f"Unexpected URL structure: {url}")
@@ -146,20 +142,23 @@ def run_with_base_url(url_list, data, json_file):
 
             domain = url_parts[2].split(".")[0].capitalize()
             service = url_parts[5].capitalize()
-            artist_id = url_parts[7].split("?")[0]  # Split the artist's name by the question mark
-            artist_name = data.get(artist_id)
+            artist_id = url_parts[7].split("?")[0]
+            artist_name = None
 
-            # Check if the service is Discord
+            print(f"Checking data type again: {type(data)}")
+
+            artist_name = data.get(artist_id, None)  # Look up artist_id directly in data
+
+            if artist_name:
+                artist_name = artist_name.capitalize()
+            else:
+                print(f"Artist ID {artist_id} not found in data.")
+                continue
+
             if service == 'Discord':
                 discord_download(artist_id)
-                continue  # skip the rest of the loop and move to the next URL
+                continue
 
-            # debug -- print("------------------- DOMAIN ---------------------", domain)
-            # debug -- print("------------------- SERVICE ---------------------", service)
-            # debug -- print("------------------- ARTIST ID ---------------------", artist_id)
-            # debug -- print("------------------- ARTIST NAME ---------------------", artist_name)
-
-            # Construct the folder structure
             artists_folder = "Creators"
             domain_folder = os.path.join(artists_folder, domain)
             artist_folder = os.path.join(domain_folder, (sanitize_filename(artist_name)))
@@ -167,17 +166,13 @@ def run_with_base_url(url_list, data, json_file):
 
             os.makedirs(platform_folder, exist_ok=True)
 
-            # Download the page and parse it as JSON
             response = get_with_retry_and_fallback(url)
-            data = json.loads(response.text)
+            response_data = json.loads(response.text)
 
-            for post_num, post in enumerate(data, start=1):
+            for post_num, post in enumerate(response_data, start=1):
                 post_folder_name = get_post_folder_name(post)
                 post_folder_name = sanitize_filename(post_folder_name)
-
-                post_folder_path = os.path.join(platform_folder,
-                                                post_folder_name)
-
+                post_folder_path = os.path.join(platform_folder, post_folder_name)
                 os.makedirs(post_folder_path, exist_ok=True)
 
                 base_url = "/".join(url.split("/")[:3])  # Extract the base URL
@@ -206,28 +201,19 @@ def run_with_base_url(url_list, data, json_file):
 
                 # Check if the username is not in the set of processed users
                 if username not in processed_users:
-
-                    # Check if the current artist is different from the previous one
                     if artist_name != current_artist:
-
-                        # debug -- print(f"Processing user: {artist_name}")
-
-                        # Update the current artist's URL
                         current_artist_url = url
                     else:
-                        # debug -- print(f"User {username} already processed. Skipping.")
-
-                        # Update the current artist
                         current_artist = artist_name
 
-                    # Add the username to the set of processed users
                     processed_users.add(username)
 
-            # Update the JSON file for every page downloaded (Temporary change)
-            if current_artist_url:
+            if previous_url and (artist_id != previous_artist_id or i == len(url_list) - 1):
                 print("Saving artist to JSON")
-                # debug -- print(current_artist_url, json_file)
-                save_artist_json(current_artist_url, json_file)
+                save_artist_json(previous_url)
+
+            previous_url = url
+            previous_artist_id = artist_id
 
     except requests.exceptions.RequestException:
         return False
@@ -279,7 +265,6 @@ def save_content_to_txt(folder_name, content, embed, post_url):
             f.write("[COMMENTS]\n")
             f.write(comment_section)
             f.write("\n")
-
 
 
 def main(option):
