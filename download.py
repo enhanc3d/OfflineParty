@@ -145,8 +145,8 @@ def run_with_base_url(url_list, data, json_file):
                 continue
 
             domain = url_parts[2].split(".")[0].capitalize()
-            service = url_parts[4].capitalize()
-            artist_id = url_parts[6].split("?")[0]  # Split the artist's name by the question mark
+            service = url_parts[5].capitalize()
+            artist_id = url_parts[7].split("?")[0]  # Split the artist's name by the question mark
             artist_name = data.get(artist_id)
 
             # Check if the service is Discord

@@ -7,7 +7,7 @@ from json_handling import save_to_kemono_favorites
 
 CONFIG_PATH = "Config"
 SETTINGS_FILE = os.path.join(CONFIG_PATH, "user_settings.yml")
-BASE_URL = "https://kemono.party"  # Updated base URL
+BASE_URL = "https://kemono.su"  # Updated base URL
 
 
 def clear_console(artist_name_or_id, channel_name=None):
@@ -24,7 +24,7 @@ def clear_console(artist_name_or_id, channel_name=None):
 
 def fetch_creator_data():
     # Fetching creator data from kemono using the API endpoint
-    return requests.get("https://kemono.party/api/creators").json()
+    return requests.get("https://kemono.su/api/creators").json()
 
 
 def get_artist_name_from_id(artist_id, combined_data):

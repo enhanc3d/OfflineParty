@@ -63,11 +63,11 @@ def check_updates_for_non_favorites(json_file_path):
 
             if faved_seq == "UNKNOWN":
                 if artist_id.isdigit():
-                    cookie_domain = "kemono.party"
+                    cookie_domain = "kemono.su"
                 else:
-                    cookie_domain = "coomer.party"
+                    cookie_domain = "coomer.su"
 
-                api_base_url = f'https://{cookie_domain}/api/{service}/user/{artist_id}'
+                api_base_url = f'https://{cookie_domain}/api/v1/{service}/user/{artist_id}'
                 if service.lower() == "discord":
                     api_url_list.append(api_base_url)
                     json_dicts.append(entry)
@@ -125,15 +125,15 @@ def fetch_json_data_from_option(option):
     Fetches the JSON data from the given option ("kemono" or "coomer")
     """
     if option == "kemono":
-        primary_cookie_domain = "kemono.party"
+        primary_cookie_domain = "kemono.su"
         fallback_cookie_domain = "kemono.su"
-        JSON_url = 'https://kemono.party/api/v1/account/favorites'
-        JSON_fallback_url = 'https://kemono.su/api/v1/account/favorites'
+        JSON_url = 'https://kemono.su/api/v1/account/favorites?type=artist'
+        JSON_fallback_url = 'https://kemono.su/api/v1/account/favorites?type=artist'
     elif option == "coomer":
-        primary_cookie_domain = "coomer.party"
+        primary_cookie_domain = "coomer.su"
         fallback_cookie_domain = "coomer.su"
-        JSON_url = 'https://coomer.party/api/v1/account/favorites'
-        JSON_fallback_url = 'https://coomer.su/api/v1/account/favorites'
+        JSON_url = 'https://coomer.su/api/v1/account/favorites?type=artist'
+        JSON_fallback_url = 'https://coomer.su/api/v1/account/favorites?type=artist'
     else:
         print(f"Invalid option: {option}")
         return None
@@ -223,7 +223,7 @@ def fetch_favorite_artists(option):
 
         if new_posts:
             service = artist['service']
-            cookie_domain = "kemono.party" if option == "kemono" else "coomer.party"
+            cookie_domain = "kemono.su" if option == "kemono" else "coomer.su"
             get_all_page_urls(cookie_domain,
                               service,
                               artist_id,
@@ -239,7 +239,7 @@ def get_all_page_urls(cookie_domain, service, artist_id, api_url_list):
     """
     Get all API page URLs for a specific artist.
     """
-    api_base_url = f'https://{cookie_domain}/api/{service}/user/{artist_id}'
+    api_base_url = f'https://{cookie_domain}/api/v1/{service}/user/{artist_id}'
     
     if service.lower() == "discord":
         api_url_list.append(api_base_url)
