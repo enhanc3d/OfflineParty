@@ -1,10 +1,18 @@
 
+
 # OfflineParty
 
 ## Prerequisites:
-pip install -r requirements.txt
+Download project
+Unrar ir
+Open CMD on directory:
+
+    pip install -r requirements.txt
 
 ## Instructions: 
 
-add the usernames on the usernames.txt
- then  python download.py -f usernames.txt
+Add the usernames on the `usernames.txt` file
+then
+
+    download.py -f usernames.txt
+
