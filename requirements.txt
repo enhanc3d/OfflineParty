@@ -5,4 +5,4 @@ tqdm
 requests
 urllib3
 html2text
-
+pyyaml

@@ -276,6 +276,27 @@ def main(option):
         url_list.extend(api_pages)
         artist_id_to_name = create_artist_id_to_name_mapping(json_data)
         run_with_base_url(url_list, artist_id_to_name, json_data)
+        
+def download_for_multiple_users(username_file):
+    with open(username_file, 'r') as file:
+        usernames = [line.strip() for line in file.readlines()]
+
+    for username in usernames:
+        print(f"Downloading content for {username}")
+        url, username, json_data = user_search(username)
+        artist_id_to_name = create_artist_id_to_name_mapping(json_data)
+        run_with_base_url(url, artist_id_to_name, json_data)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Download data from websites.")
+    parser.add_argument('-f', '--file', type=str, metavar='USERNAME_FILE',
+                        help="Path to the text file containing usernames")
+    args = parser.parse_args()
+
+    if args.file:
+        download_for_multiple_users(args.file)
+    else:
+        print("Please specify a username file using the -f or --file option.")
 
 
 def delete_json_file(filename):
