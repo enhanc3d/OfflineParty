@@ -1,10 +1,36 @@
 
-### Release Notes for version 1.3.5
+### Release Notes for version 1.3.7
 
 
 **Changes**
 
-Fixed order of JSON creator entry saving
-Simplified function calling of JSON Handling
-Corrected the assumption that all coomer creators have equal id and name (Fansly creators don't)
+`download.py`
+    - Accelerated user page download process by storing fully downloaded posts in a .txt file, this reduces unneeded HTTP calls
+    - Removed the old fallback methods, since there is no longer a backup server
+    - Fixed the save error to txt function, which was broken for a long time
+
+`get_favorites.py`
+    - Merged the favorite and non favorite user fetching function
+    - Improved readability of the code
+    - Removed fallback methods
+
+`discord_download.py`
+    - Fixed discord download in general, which was broken by the new API
+
+**Future changes**
+
+I am actively working (In the little free time I have) on polishing this script: merging as much of the functions as possible, improving speeds, code readability... and overall trying to make the experience better for everyone, users and coders alike. 
+
+This will however take a while, and I can't assure my code will be 100% clean, but I'll try my best!
+
+- Merging of discord_download.py into download.py
+- Moving JSON functions from download.py to json_handling or viceversa (Still on the thinking lol)
+- Update check for the program on start (Since this project gets updated quite a lot and I usually make stupid mistakes that break everything lol)
+- Cron functionality, basically leave your PC on and let the program keep your stash updated at aaaaall times
+- Creation of a settings menu, where you'll be able to change some parameters like the path of your stash, the number of posts to download from each artist, disk size limitations to not fill up every drive you own lol
+- Menu so you can use the program with or without the need to use flags (Flags make it easier imo, but some people don't like them so I don't mind giving them a lil treat)
+
+This is all I can say for now! Not that it's top secret or anything, but I don't wanna spoil any features that won't be around until a few months down the road, it'd be bad to keep you guys hanging!
+
+Oh, and it's not Halloween yet but keep it spooky 🎃
 
