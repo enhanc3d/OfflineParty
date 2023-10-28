@@ -26,6 +26,42 @@ def create_artist_id_to_name_mapping(data):
         return {}  # Return an empty dictionary for unsupported data types
 
 
+def read_user_txt_list():
+    dir_path = 'Config'  # Relative path to the current directory
+    file_name = 'user_list.txt'
+    file_path = os.path.join(dir_path, file_name)
+    user_list = []
+
+    # Create the directory if it does not exist
+    if not os.path.exists(dir_path):
+        try:
+            os.makedirs(dir_path)
+        except OSError as e:
+            print(f"Could not create directory {dir_path}. Error: {e}")
+            return
+
+    # Check if the file exists
+    if os.path.exists(file_path):
+        # If it exists, read the usernames from it
+        with open(file_path, 'r', encoding='utf-8') as user_list_file:
+            user_list = [line.strip() for line in user_list_file.readlines() if line.strip()]
+    else:
+        # If it doesn't exist, create it
+        with open(file_path, 'w', encoding='utf-8') as user_list_file:
+            print(f"{file_path} created.")
+
+    # Iterate through the list of usernames
+    for username in user_list:
+        # Call user_search to get artist information
+        urls, labels, json_data = user_search(username)
+        artist_id_to_name = create_artist_id_to_name_mapping(json_data)
+
+        print(f"Downloading data for {username.capitalize()}")
+
+        # Call run_with_base_url with the list of URLs directly
+        run_with_base_url(urls, artist_id_to_name, json_data)
+
+
 def get_post_folder_name(post):
     # Get the post title and strip any whitespace or newline characters
     title = post.get('title', '').strip()
@@ -124,7 +160,7 @@ def download_file(url, folder_name, file_name, artist_url):
 def run_with_base_url(url_list, data, json_file):
     # print("------------------- DATA ---------------\n", data)
     # print("------------------- URL LIST ---------------\n", url_list)
-    print(f"Data type: {type(data)}")
+    # print(f"Data type: {type(data)}")
 
     processed_users = set()
     current_artist = None
@@ -145,7 +181,7 @@ def run_with_base_url(url_list, data, json_file):
             artist_id = url_parts[7].split("?")[0]
             artist_name = None
 
-            print(f"Checking data type again: {type(data)}")
+            # print(f"Checking data type again: {type(data)}")
 
             artist_name = data.get(artist_id, None)  # Look up artist_id directly in data
 
@@ -298,12 +334,10 @@ if __name__ == "__main__":
                        '--kemono',
                        action='store_true',
                        help="Download data from kemono")
-
     group.add_argument('-c',
                        '--coomer',
                        action='store_true',
                        help="Download data from coomer")
-
     group.add_argument('-b',
                        '--both',
                        action='store_true',
@@ -311,8 +345,13 @@ if __name__ == "__main__":
     group.add_argument('-u',
                         '--user',
                         type=str,
-                        metavar='USERNAME',
-                        help="Only download posts from a specific user")
+                        metavar='USERNAME/URL',
+                        help="Only download posts from specific users, separated by commas")
+    group.add_argument('-l',
+                        '--list',
+                        action='store_true',
+                        help="Read usernames from user_list.txt")
+    
     parser.add_argument('-r',
                         '--reset',
                         action='store_true',
@@ -320,7 +359,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.kemono:
+    # Process the --user flag value to get a list of usernames
+    if args.user:
+        users = [user.strip() for user in args.user.split(",")]
+
+    if args.list:
+        read_user_txt_list()
+    elif args.kemono:
         if args.reset:
             delete_json_file('Config/kemono_favorites.json')
         main("kemono")
@@ -328,16 +373,11 @@ if __name__ == "__main__":
         if args.reset:
             delete_json_file('Config/coomer_favorites.json')
         main("coomer")
-
     elif args.user:
-        # user = args.user if args.user else str(input("Please type the name of the creator: "))
-        user = args.user or str(input("Please type the name of the creator: "))
-        url, username, json_data,  = user_search(user)
-        # DEBUG print("-------------------URL----------------------\n",url)
-        # DEBUG print("-------------------Username----------------------\n",username)
-        # print("-------------------json_file_path----------------------\n",json_file_path)
-        artist_id_to_name = create_artist_id_to_name_mapping(json_data)
-        run_with_base_url(url, artist_id_to_name, json_data)
+        for user in users:  # Loop over the list of usernames
+            url, username, json_data = user_search(user)
+            artist_id_to_name = create_artist_id_to_name_mapping(json_data)
+            run_with_base_url(url, artist_id_to_name, json_data)
     elif args.both:
         if args.reset:
             delete_json_file('Config/kemono_favorites.json')
