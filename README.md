@@ -17,8 +17,19 @@
     - `-k` or `--kemono`: Download data from kemono
     - `-c` or `--coomer`: Download data from coomer
     - `-b` or `--both`: Download data from both kemono and coomer
+    - `-l` or `--list`: Download from your own list of users/urls (user_list.txt in the Config folder, if it doesn't exist it will be created in the first run with this flag)
+        - The txt file has to follow this structure:
+        - ```
+          UserOrUrl1
+          UserOrUrl2
+          UserOrUrl3
+          ... 
     - `-r` or `--reset`: Reset (delete) the specific JSON files before downloading
-    - -`u` or `--user`: Allows search for one specific user by their username or URL (Incompatible with the other flags)
+    - -`u` or `--user`: Allows search for specific users by their username or URL, separated by commas and without spaces. (Incompatible with the other flags)
+        - **WARNING, IF THE USERNAME HAS WHITESPACES IN THEIR NAME YOU HAVE TO USE THE COMMAND WITH QUOTES**
+        - EXAMPLES:
+        -     download.py -l "afrobull,Your Favorite Artist"
+        -     download.py -l afrobull,vicineko,otakugirl90 (No whitespaces in their names, so no quotes needed)
 
 4. Enjoy!
 
@@ -40,7 +51,5 @@ You can use flags `-c`, `-b`, `-r` in a similar way.
 ```
 
 Using this command will look through all creators, both kemono and coomer, to make sure we get all matching users.
-
-As of right now, only one user is available for download at a time, but in the short term this will be expanded to allow for multiple manual user download at a time
 
 Also, it's my first time working with shell scripts, so if you have any problems do let me know, thanks! 
