@@ -24,7 +24,7 @@ def clear_console(artist_name_or_id, channel_name=None):
 
 def fetch_creator_data():
     # Fetching creator data from kemono using the API endpoint
-    return requests.get("https://kemono.su/api/creators").json()
+    return requests.get("https://kemono.su/api/v1/creators.txt").json()
 
 
 def get_artist_name_from_id(artist_id, combined_data):
@@ -70,7 +70,7 @@ def sanitize_attachment_name(name):
 
 def fetch_discord_channels(server_id):
     """Fetch the list of channels for a given server."""
-    url = f"{BASE_URL}/api/discord/channels/lookup?q={server_id}"
+    url = f"{BASE_URL}/api/v1/discord/channel/lookup/{server_id}"
     response = requests.get(url)
 
     if response.status_code != 200:
@@ -96,7 +96,7 @@ def get_post_folder_name(post):
 
 def fetch_discord_posts(channel_id, skip_value):
     """Fetch posts for a given channel."""
-    response = requests.get(f"{BASE_URL}/api/discord/channel/{channel_id}?skip={skip_value}")
+    response = requests.get(f"{BASE_URL}/api/v1/discord/channel/{channel_id}?skip={skip_value}")
     if response.status_code == 200:
         return response.json()
     return []
