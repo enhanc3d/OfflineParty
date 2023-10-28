@@ -1,5 +1,5 @@
 
-### Release Notes for version 1.3.7
+### Release Notes for version 1.4.0
 
 **Changes**
 
