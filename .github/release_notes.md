@@ -1,7 +1,6 @@
 
 ### Release Notes for version 1.3.7
 
-
 **Changes**
 
 `download.py`
@@ -33,4 +32,3 @@ This will however take a while, and I can't assure my code will be 100% clean, b
 This is all I can say for now! Not that it's top secret or anything, but I don't wanna spoil any features that won't be around until a few months down the road, it'd be bad to keep you guys hanging!
 
 Oh, and it's not Halloween yet but keep it spooky 🎃
-

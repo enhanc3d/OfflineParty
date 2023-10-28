@@ -4,8 +4,8 @@
 ## Prerequisites:
 
 1. Install the required dependencies (Python and the modules it needs) using the install script matching your OS
-
-2. Create a Kemono/Coomer account and/or log in with your default browser **(Not needed if you search by user)**
+2. Alternatively, if you already have python installed or the installation of modules failed, just run ```pip install -r requirements.txt```
+3. Create a Kemono/Coomer account and/or log in with your default browser **(Not needed if you search by user)**
 
 ## Instructions: 
 
