@@ -1,4 +1,3 @@
-
 # Check if Python is installed
 $python = Get-Command python -ErrorAction SilentlyContinue
 
@@ -9,28 +8,9 @@ if (-not $python) {
 
 Write-Output "Python is already installed."
 
-# Check and install missing packages
-$requirements = Get-Content -Path .\requirements.txt
-
-foreach ($req in $requirements) {
-    # Skip empty lines
-    if (-not $req) {
-        continue
-    }
-    
-    try {
-        $module = python -m pip show $req
-    } catch {
-        $module = $null
-    }
-
-    if (-not $module) {
-        Write-Output "Installing missing package: $req"
-        python -m pip install $req
-    } else {
-        Write-Output "$req is already installed."
-    }
-}
+# Install packages from requirements.txt
+Write-Output "Installing packages from requirements.txt..."
+python -m pip install -r .\requirements.txt
 
 Write-Output "Done! Press any key to exit."
 $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
