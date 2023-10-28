@@ -26,7 +26,7 @@
           ... 
     - `-r` or `--reset`: Reset (delete) the specific JSON files before downloading
     - -`u` or `--user`: Allows search for specific users by their username or URL, separated by commas and without spaces. (Incompatible with the other flags)
-        - WARNING, IF THE USERNAME HAS WHITESPACES IN THEIR NAME YOU HAVE TO USE THE COMMAND WITH QUOTES
+        - **WARNING, IF THE USERNAME HAS WHITESPACES IN THEIR NAME YOU HAVE TO USE THE COMMAND WITH QUOTES**
         - EXAMPLES:
         -     download.py -l "afrobull,Your Favorite Artist"
         -     download.py -l afrobull,vicineko,otakugirl90 (No whitespaces in their names, so no quotes needed)
