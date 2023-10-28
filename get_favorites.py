@@ -1,25 +1,9 @@
-import browser_cookie3
-import requests
+import os
 import time
 import json
-import sys
-import os
+import requests
+import browser_cookie3
 from tqdm import tqdm
-
-
-def safe_print(text):
-    try:
-        # Try to print the text as UTF-8
-        sys.stdout.buffer.write(text.encode('utf-8'))
-        sys.stdout.buffer.write(b'\n')
-    except UnicodeEncodeError:
-        # Handle characters that cannot be encoded
-        for char in text:
-            try:
-                sys.stdout.buffer.write(char.encode('utf-8'))
-            except UnicodeEncodeError:
-                sys.stdout.buffer.write(b'?')  # Replace unencodable characters with a placeholder
-        sys.stdout.buffer.write(b'\n')
 
 
 def create_config(directory):
@@ -44,112 +28,29 @@ def create_config(directory):
             json.dump([], coomer_file)
 
 
-def check_updates_for_non_favorites(json_file_path):
-
-    # Define the list to be returned
-    api_url_list = []
-    json_dicts = []  # List to store JSON dictionaries
-
-    try:
-        with open(json_file_path, 'r', encoding='utf-8') as json_file:
-            json_data = json.load(json_file)
-
-        for entry in json_data:
-            faved_seq = entry.get("faved_seq")
-            artist_id = entry.get("id")
-            artist_name = entry.get("name")
-            service = entry.get("service")
-            old_date = entry.get("updated")
-
-            if faved_seq == "UNKNOWN":
-                if artist_id.isdigit() and service != "fansly":
-                    cookie_domain = "kemono.su"
-                else:
-                    cookie_domain = "coomer.su"
-
-                api_base_url = f'https://{cookie_domain}/api/v1/{service}/user/{artist_id}'
-                if service.lower() == "discord":
-                    api_url_list.append(api_base_url)
-                    json_dicts.append(entry)
-                    continue
-
-                try:
-                    response = requests.get(api_base_url)
-                    response.raise_for_status()
-                    website_data = response.json()
-
-                    # Assuming website_data is a list of dictionaries
-                    if website_data:
-                        # Extracting the "published" key from the first item in the list
-                        published_date = website_data[0].get("published")
-
-                        # Update the "updated" field in the entry with the new published_date
-                        entry["updated"] = published_date
-
-                        # Append the JSON dictionary to the list
-                        json_dicts.append(entry)
-
-                        if old_date != published_date:
-                            api_url_list = get_all_page_urls(cookie_domain, service, artist_id, api_url_list)
-
-                    else:
-                        return None, None  # No data found on the website
-
-                except requests.exceptions.RequestException as e:
-                    print(f"Error fetching data from website: {e}")
-
-    except FileNotFoundError:
-        print(f"JSON file not found: {json_file_path}")
-
-    # Return both the list of unupdated URLs and the list of JSON dictionaries
-    return api_url_list, json_dicts
-
-
-def load_old_favorites_data(json_file):
-    """
-    Loads the existing JSON files for coomer or kemono, if they exist.
-    This is needed to understand if there are new posts
-    from our favorite creators.
-    """
-    old_favorites_data = {}
-    try:
-        with open(json_file, 'r', encoding='utf-8') as f:
-            old_favorites_data = json.load(f)
-    except FileNotFoundError:
-        print("JSON file not found. It will be created after fetching data.")
-    return old_favorites_data
-
-
-def fetch_json_data_from_option(option):
+def fetch_json_data(option):
     """
     Fetches the JSON data from the given option ("kemono" or "coomer")
     """
     if option == "kemono":
-        primary_cookie_domain = "kemono.su"
-        fallback_cookie_domain = "kemono.su"
+        cookie_domain = "kemono.su"
         JSON_url = 'https://kemono.su/api/v1/account/favorites?type=artist'
-        JSON_fallback_url = 'https://kemono.su/api/v1/account/favorites?type=artist'
     elif option == "coomer":
-        primary_cookie_domain = "coomer.su"
-        fallback_cookie_domain = "coomer.su"
+        cookie_domain = "coomer.su"
         JSON_url = 'https://coomer.su/api/v1/account/favorites?type=artist'
-        JSON_fallback_url = 'https://coomer.su/api/v1/account/favorites?type=artist'
     else:
         print(f"Invalid option: {option}")
         return None
 
-    for cookie_domain, favorites_json_url in [
-        (primary_cookie_domain, JSON_url),
-        (fallback_cookie_domain, JSON_fallback_url),
-    ]:
-        cj = browser_cookie3.load()
+    for cookie_domain, favorites_json_url in [(cookie_domain, JSON_url)]:
+        browser_cookies = browser_cookie3.load()
         session_id_cookie = next(
             (
                 cookie.value
-                for cookie in cj
+                for cookie in browser_cookies
                 if cookie_domain in cookie.domain and cookie.name == 'session'
             ),
-            None,
+            None
         )
         if session_id_cookie is None:
             print("Failed to fetch session ID cookie.")
@@ -170,8 +71,7 @@ def fetch_json_data_from_option(option):
                 favorites_response.raise_for_status()
                 return_value = favorites_response.json()
 
-                # Debugging line
-                # print(f"Number of return values: {len(return_value)}")
+                # debug -- print(f"Number of return values: {len(return_value)}")
 
                 return return_value
             except requests.exceptions.RequestException as e:
@@ -184,55 +84,80 @@ def fetch_json_data_from_option(option):
                     print("Couldn't connect to the server, try again later.")
                     continue
 
-    print("Failed to fetch favorite artists from primary and fallback URLs.")
+    print("Failed to fetch favorite users.")
+    print("Make sure you are logged into %s website(s) and try again" % option)
     return None
 
 
+def load_old_favorites_data(json_file):
+    """
+    Loads the existing JSON files for coomer or kemono, if they exist.
+    This is needed to understand if there are new posts
+    from our favorite creators.
+    """
+    old_favorites_data = {}
+    try:
+        with open(json_file, 'r', encoding='utf-8') as f:
+            old_favorites_data = json.load(f)
+    except FileNotFoundError:
+        print("JSON file not found. It will be created after fetching data.")
+    return old_favorites_data
+
+
 def fetch_favorite_artists(option):
-    """
-    Requests the list of favorite creators from the APIs
-    and extracts some useful data based on the specified option.
-    """
     create_config('Config')
 
     if option not in ["kemono", "coomer"]:
         print(f"Invalid option: {option}")
-        return [], [], []
+        return [], []
 
-    json_file = 'Config/kemono_favorites.json' if option == "kemono" else 'Config/coomer_favorites.json'
+    json_file = f'Config/{option}_favorites.json'
     old_favorites_data = load_old_favorites_data(json_file)
     old_favorites = {artist['id']: artist for artist in old_favorites_data}
 
-    favorites_data = fetch_json_data_from_option(option)
+    favorites_data = fetch_json_data(option)
 
     if not favorites_data:
         return [], []
 
     api_url_list = []
 
+    # Identify artists that are in old_favorites but not in the new favorites_data
+    missing_from_favorites = {k: v for k, v in old_favorites.items() if k not in [artist['id'] for artist in favorites_data]}
+
+    # Fetch all creators
+    all_creators_url = f"https://{option}.su/api/v1/creators.txt"
+    try:
+        response = requests.get(all_creators_url)
+        response.raise_for_status()
+        all_creators_data = response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching data from website: {e}")
+        return [], []
+
+    # Identify and add the missing_from_favorites creators to the favorites_data
+    for creator in all_creators_data:
+        if creator['id'] in missing_from_favorites:
+            favorites_data.append(creator)
+
+    # Check for new posts for all artists in favorites_data
     for artist in tqdm(favorites_data, desc="Processing artists"):
-        artist_id = artist['id']  # Extracts ID
         new_posts = False
+        artist_id = artist['id']
+
         if artist_id in old_favorites:
             old_updated = old_favorites[artist_id]['updated']
             updated = artist['updated']
-
-            new_posts = old_updated != updated  # If the date of the post is different, we understand there are new posts
+            new_posts = old_updated != updated
         else:
             new_posts = True
 
         if new_posts:
             service = artist['service']
-            cookie_domain = "kemono.su" if option == "kemono" else "coomer.su"
-            get_all_page_urls(cookie_domain,
-                              service,
-                              artist_id,
-                              api_url_list)
+            cookie_domain = f"{option}.su"
+            get_all_page_urls(cookie_domain, service, artist_id, api_url_list)
 
-    non_favorites_api_url_list, non_favorite_json_data = check_updates_for_non_favorites(json_file)
-    all_api_urls = api_url_list + non_favorites_api_url_list
-    favorites_data.extend(non_favorite_json_data)
-    return all_api_urls, favorites_data
+    return api_url_list, favorites_data
 
 
 def get_all_page_urls(cookie_domain, service, artist_id, api_url_list):
