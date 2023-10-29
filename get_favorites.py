@@ -135,7 +135,8 @@ def fetch_favorite_artists(option):
         print(f"Error fetching data from website: {e}")
         return [], []
 
-    # Identify and add the missing_from_favorites creators to the favorites_data
+    creators_dict = {creator['id']: creator for creator in all_creators_data}
+
     for creator in all_creators_data:
         if creator['id'] in missing_from_favorites:
             favorites_data.append(creator)
@@ -147,7 +148,7 @@ def fetch_favorite_artists(option):
 
         if artist_id in old_favorites:
             old_updated = old_favorites[artist_id]['updated']
-            updated = artist['updated']
+            updated = artist['updated'] if artist['updated'] else creators_dict.get(artist_id, {}).get('updated', None)
             new_posts = old_updated != updated
         else:
             new_posts = True
@@ -167,7 +168,7 @@ def get_all_page_urls(cookie_domain, service, artist_id, api_url_list):
     api_base_url = f'https://{cookie_domain}/api/v1/{service}/user/{artist_id}'
     
     if service.lower() == "discord":
-        api_url_list.append(api_base_url)
+        api_url_list.append(f'https://{cookie_domain}/api/v1/discord/channel/{artist_id}')
         return api_url_list
     
     offset = 0
