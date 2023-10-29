@@ -5,6 +5,7 @@
 `download`
 * 1.4.3: Added Update Tracker
 * 1.4.3: Prettified menus with color
+* 1.4.3: Added startup logo (Can turn it on or off in settings)
 
 * Added menu, flags are still available, but this can make things easier
 * Added settings menu, not accesible with flags, with some interesting features in it:
