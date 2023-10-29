@@ -15,6 +15,18 @@ from json_handling import lookup_and_save_user as save_artist_json
 from discord_download import scrape_discord_server as discord_download
 
 
+def clear_console(artist_name_id_or_url, channel_name=None):
+    if artist_name_id_or_url is None:
+        artist_name_id_or_url = "Unknown Artist"  # Add a default value
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print(f"{'='*(len(artist_name_id_or_url)+24)}")
+    if channel_name:
+        print(f"Downloading posts from: {artist_name_id_or_url} in channel: {channel_name}")
+    else:
+        print(f"Downloading posts from: {artist_name_id_or_url}")
+    print(f"{'='*(len(artist_name_id_or_url)+24)}\n")
+
+
 # Map Kemono artist IDs to their names
 def create_artist_id_to_name_mapping(data):
     if isinstance(data, dict):
@@ -64,18 +76,6 @@ def read_user_txt_list():
         run_with_base_url(urls, artist_id_to_name, json_data)
 
 
-def clear_console(artist_name_id_or_url, channel_name=None):
-    if artist_name_id_or_url is None:
-        artist_name_id_or_url = "Unknown Artist"  # Add a default value
-    os.system('cls' if os.name == 'nt' else 'clear')
-    print(f"{'='*(len(artist_name_id_or_url)+24)}")
-    if channel_name:
-        print(f"Downloading posts from: {artist_name_id_or_url} in channel: {channel_name}")
-    else:
-        print(f"Downloading posts from: {artist_name_id_or_url}")
-    print(f"{'='*(len(artist_name_id_or_url)+24)}\n")
-
-
 # Function to read downloaded posts list from .json file
 def read_downloaded_posts_list(platform_folder):
     file_path = os.path.join(platform_folder, "downloaded_posts.json")
@@ -87,7 +87,7 @@ def read_downloaded_posts_list(platform_folder):
     return downloaded_posts
 
 # Function to write downloaded post IDs to .json file
-def write_downloaded_post(platform_folder, downloaded_posts):
+def write_to_downloaded_post_list(platform_folder, downloaded_posts):
     file_path = os.path.join(platform_folder, "downloaded_posts.json")
     with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(list(downloaded_posts), file, ensure_ascii=False, indent=4)
@@ -296,7 +296,7 @@ def run_with_base_url(url_list, data, json_file):
                 # After all downloads for this post are complete, add the post ID to downloaded posts and save to JSON.
                 if all_downloads_successful:  # Only add if all downloads are successful
                     downloaded_post_list.add(post_id)
-                    write_downloaded_post(platform_folder, downloaded_post_list)
+                    write_to_downloaded_post_list(platform_folder, downloaded_post_list)
                     all_downloaded_posts.add(post_id)  # Add post ID to the overall set
 
 
