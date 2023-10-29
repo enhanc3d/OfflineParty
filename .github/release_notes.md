@@ -1,14 +1,20 @@
-### Release Notes for version 1.4.1
+### Release Notes for version 1.4.2
 
 **Changes**
 
-`download.py`
-    - Handling of connection loss during downloads by using retries and timeouts
-    - Prettified the console output for downloads
-    - Fixed error where posts could be added to the downloaded list even if there were errors in the download
+`download`
+    - Added menu, flags are still available, but this can make things easier
+    - Added settings menu, not accesible with flags, with some interesting features in it:
+        - Ability to change the directory of the Creators folder (Finally!)
+        - Ability to add a limit of posts to download from each user
+        - Ability to stablish a disk size limit, it will throw warnings when we're closing to our limit and has checks in place to avoid overpassing it
+        - Ability to easily change your Discord download preference between all posts in the channel folder or separate folders for each post (This was possible before, but it would only be prompted during the first Discord download and to change it you'd have to manually edit the YAML file)
 
-`get_favorites.py`
-    - Fixed update discovery of discord users
+`discord_download`
+    - Reading path from the YAML to match with `download.py`
+
+`user_search`
+    - Simplified yes or no retry prompt, pretty simple change but why not log it I guess
 
 **Future changes**
 
@@ -20,9 +26,7 @@ This will however take a while, and I can't assure my code will be 100% clean, b
 - Moving JSON functions from download.py to json_handling or viceversa (Still on the thinking lol)
 - Update check for the program on start (Since this project gets updated quite a lot and I usually make stupid mistakes that break everything lol)
 - Cron functionality, basically leave your PC on and let the program keep your stash updated at aaaaall times
-- Creation of a settings menu, where you'll be able to change some parameters like the path of your stash, the number of posts to download from each artist, disk size limitations to not fill up every drive you own lol
-- Menu so you can use the program with or without the need to use flags (Flags make it easier imo, but some people don't like them so I don't mind giving them a lil treat)
 
-This is all I can say for now! Not that it's top secret or anything, but I don't wanna spoil any features that won't be around until a few months down the road, it'd be bad to keep you guys hanging!
+This is all I can say for now! Not that it's top secret or anything, but I don't wanna spoil any features that won't be around until a few weeks down the road, it'd be bad to keep you guys hanging!
 
 Oh, and it's not Halloween yet but keep it spooky 🎃
