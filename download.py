@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import json
 import requests
 import argparse
@@ -116,64 +117,76 @@ def sanitize_attachment_name(name):
     return sanitize_filename(name)
 
 
-def get_with_retry(url, retries=3, stream=False):
+def get_with_retry(url, retries=5, stream=False, timeout=30, delay=30):
     for i in range(retries):
         try:
-            response = requests.get(url, stream=stream)
+            response = requests.get(url, stream=stream, timeout=timeout)
             response.raise_for_status()
             return response
-        except requests.exceptions.RequestException as e:
+        except (requests.exceptions.RequestException, requests.exceptions.Timeout) as e:
             print(f"Failed to get {url}, attempt {i + 1}")
-            if i == retries - 1:
+            if i < retries - 1:
+                print(f"Waiting for {delay} seconds before retrying.")
+                time.sleep(delay)  # Wait for 'delay' seconds before the next retry
+            else:
                 print(f"Failed to download {url}, logging to errors.txt")
                 with open("errors.txt", 'a') as error_file:
                     error_line = f"{url} -- {str(e)}\n"
                     error_file.write(error_line)
+                return None  # Explicitly return None if all retries fail
 
 
 def download_file(url, folder_name, file_name, artist_url, artist_name=None):
-    folder_path = os.path.join(folder_name, file_name)
-    temp_folder_path = os.path.join(folder_name, file_name + ".temp")
+    try:
+        folder_path = os.path.join(folder_name, file_name)
+        temp_folder_path = os.path.join(folder_name, file_name + ".temp")
 
-    # If a temporary file exists, remove it to restart the download
-    if os.path.exists(temp_folder_path):
-        os.remove(temp_folder_path)
+        # If a temporary file exists, remove it to restart the download
+        if os.path.exists(temp_folder_path):
+            os.remove(temp_folder_path)
 
-    # If the final file exists, skip the download
-    if os.path.exists(folder_path):
-        print(f"Skipping download: {file_name} already exists")
-        return True  # Indicate that download is not needed (file already exists)
+        # If the final file exists, skip the download
+        if os.path.exists(folder_path):
+            print(f"Skipping download: {file_name} already exists")
+            return True  # Indicate that download is not needed (file already exists)
 
-    response = get_with_retry(url, stream=True)
-    if response and response.status_code == 200:
-        total_size_in_bytes = int(response.headers.get('content-length', 0))
-        progress_bar = tqdm(total=total_size_in_bytes,
-                            unit='iB',
-                            unit_scale=True,
-                            leave=True,
-                            desc=file_name)
+        response = get_with_retry(url, stream=True)
+        if response is None:  # Check for None returned by get_with_retry
+            return False  # Indicate download failure
 
-        # Use a temporary file for the download process
-        with open(temp_folder_path, 'wb') as f:
-            for data in response.iter_content(1024):
-                progress_bar.update(len(data))
-                f.write(data)
+        if response and response.status_code == 200:
+            total_size_in_bytes = int(response.headers.get('content-length', 0))
+            progress_bar = tqdm(total=total_size_in_bytes,
+                                unit='iB',
+                                unit_scale=True,
+                                leave=True,
+                                desc=file_name)
 
-        progress_bar.close()
+            # Use a temporary file for the download process
+            with open(temp_folder_path, 'wb') as f:
+                for data in response.iter_content(1024):
+                    progress_bar.update(len(data))
+                    f.write(data)
 
-        # Rename the temporary file to the final file name
-        os.rename(temp_folder_path, folder_path)
+            progress_bar.close()
 
-        if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
-            print("ERROR, something went wrong")
-            return False
+            # Rename the temporary file to the final file name
+            os.rename(temp_folder_path, folder_path)
 
-        print(f"Finished downloading: {file_name} from {artist_url}")
-        clear_console(artist_name or artist_url)  # Use artist_name if available, otherwise use artist_url
+            if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
+                print("ERROR, something went wrong")
+                return False
 
-        return True # Indicate download success
-    else:
+            print(f"Finished downloading: {file_name} from {artist_url}")
+            clear_console(artist_name or artist_url)  # Use artist_name if available, otherwise use artist_url
+
+            return True  # Indicate download success
+        else:
+            return False  # Indicate download failure
+    except Exception as e:
+        print(f"An error occurred while downloading {file_name}: {str(e)}")
         return False  # Indicate download failure
+
 
 
 def run_with_base_url(url_list, data, json_file):
