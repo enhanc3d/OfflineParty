@@ -132,9 +132,12 @@ def get_with_retry(url, retries=5, stream=False, timeout=30, delay=30):
             else:
                 print(f"Failed to download {url}, logging to errors.txt")
                 current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # Get the current date and time
-                with open("errors.txt", 'a') as error_file:
-                    error_line = f"{current_date} - {url} -- {str(e)}\n"  # Include the current date and time
-                    error_file.write(error_line)
+                try:
+                    with open("errors.txt", 'a') as error_file:
+                        error_line = f"{current_date} - {url} -- {str(e)}\n"  # Include the current date and time
+                        error_file.write(error_line)
+                except Exception as write_error:
+                    print(f"Could not write to errors.txt. Error: {write_error}")
                 return None  # Explicitly return None if all retries fail
 
 
