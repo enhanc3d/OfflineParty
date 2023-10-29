@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import json
 import requests
 import argparse
@@ -7,21 +8,36 @@ import html2text
 import get_favorites
 from tqdm import tqdm
 from bs4 import BeautifulSoup
+from datetime import datetime
 from pathvalidate import sanitize_filename
 from user_search import main as user_search
 from json_handling import lookup_and_save_user as save_artist_json
 from discord_download import scrape_discord_server as discord_download
 
 
+def clear_console(artist_name_id_or_url, channel_name=None):
+    if artist_name_id_or_url is None:
+        artist_name_id_or_url = "Unknown Artist"  # Add a default value
+    
+    os.system('cls' if os.name == 'nt' else 'clear')
+    
+    separator = '=' * (len(artist_name_id_or_url) + 24)
+    print(separator)
+    
+    if channel_name:
+        print(f"Downloading posts from: {artist_name_id_or_url} in channel: {channel_name}")
+    else:
+        print(f"Downloading posts from: {artist_name_id_or_url}")
+    
+    print(separator)
+
 # Map Kemono artist IDs to their names
 def create_artist_id_to_name_mapping(data):
     if isinstance(data, dict):
-        if "id" in data and "name" in data:
-            return {data["id"]: data["name"].capitalize()}
-        else:
-            return {}
+        # If "id" and "name" are in the data:
+        return {data.get("id", ""): data.get("name", "").capitalize()}
     elif isinstance(data, list):
-        return {item["id"]: item["name"].capitalize() for item in data if isinstance(item, dict) and "id" in item and "name" in item}
+        return {item.get("id", ""): item.get("name", "").capitalize() for item in data if isinstance(item, dict)}
     else:
         return {}  # Return an empty dictionary for unsupported data types
 
@@ -70,10 +86,11 @@ def read_downloaded_posts_list(platform_folder):
     if os.path.exists(file_path):
         with open(file_path, 'r', encoding='utf-8') as file:
             downloaded_posts = set(json.load(file))
+    
     return downloaded_posts
 
 # Function to write downloaded post IDs to .json file
-def write_downloaded_post(platform_folder, downloaded_posts):
+def write_to_downloaded_post_list(platform_folder, downloaded_posts):
     file_path = os.path.join(platform_folder, "downloaded_posts.json")
     with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(list(downloaded_posts), file, ensure_ascii=False, indent=4)
@@ -104,61 +121,80 @@ def sanitize_attachment_name(name):
     return sanitize_filename(name)
 
 
-def get_with_retry(url, retries=3, stream=False):
+def get_with_retry(url, retries=5, stream=False, timeout=30, delay=30):
     for i in range(retries):
         try:
-            response = requests.get(url, stream=stream)
+            response = requests.get(url, stream=stream, timeout=timeout)
             response.raise_for_status()
             return response
-        except requests.exceptions.RequestException as e:
+        except (requests.exceptions.RequestException, requests.exceptions.Timeout) as e:
             print(f"Failed to get {url}, attempt {i + 1}")
-            if i == retries - 1:
-                print(f"Failed to download {url}", 'logging to errors.txt')
-                with open("errors.txt", 'a') as error_file:
-                    error_line = f"{url}  -- {str(e)}\n"
-                    error_file.write(error_line)
+            if i < retries - 1:
+                print(f"Waiting for {delay} seconds before retrying.")
+                time.sleep(delay)  # Wait for 'delay' seconds before the next retry
+            else:
+                print(f"Failed to download {url}, logging to errors.txt")
+                current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # Get the current date and time
+                try:
+                    with open("errors.txt", 'a') as error_file:
+                        error_line = f"{current_date} - {url} -- {str(e)}\n"  # Include the current date and time
+                        error_file.write(error_line)
+                except Exception as write_error:
+                    print(f"Could not write to errors.txt. Error: {write_error}")
+                return None  # Explicitly return None if all retries fail
 
 
-def download_file(url, folder_name, file_name, artist_url):
-    folder_path = os.path.join(folder_name, file_name)
-    temp_folder_path = os.path.join(folder_name, file_name + ".temp")
+def download_file(url, folder_name, file_name, artist_url, artist_name=None):
+    try:
+        folder_path = os.path.join(folder_name, file_name)
+        temp_folder_path = os.path.join(folder_name, file_name + ".temp")
 
-    # If a temporary file exists, remove it to restart the download
-    if os.path.exists(temp_folder_path):
-        os.remove(temp_folder_path)
+        # If a temporary file exists, remove it to restart the download
+        if os.path.exists(temp_folder_path):
+            os.remove(temp_folder_path)
 
-    # If the final file exists, skip the download
-    if os.path.exists(folder_path):
-        print(f"Skipping download: {file_name} already exists")
-        return
+        # If the final file exists, skip the download
+        if os.path.exists(folder_path):
+            print(f"Skipping download: {file_name} already exists")
+            return True  # Indicate that download is not needed (file already exists)
 
-    response = get_with_retry(url, stream=True)
-    if response and response.status_code == 200:
-        total_size_in_bytes = int(response.headers.get('content-length', 0))
-        progress_bar = tqdm(total=total_size_in_bytes,
-                            unit='iB',
-                            unit_scale=True,
-                            leave=False)
+        response = get_with_retry(url, stream=True)
+        if response is None:  # Check for None returned by get_with_retry
+            return False  # Indicate download failure
 
-        # Use a temporary file for the download process
-        with open(temp_folder_path, 'wb') as f:
-            for data in response.iter_content(1024):
-                progress_bar.update(len(data))
-                f.write(data)
+        if response and response.status_code == 200:
+            total_size_in_bytes = int(response.headers.get('content-length', 0))
+            progress_bar = tqdm(total=total_size_in_bytes,
+                                unit='iB',
+                                unit_scale=True,
+                                leave=True,
+                                desc=file_name)
 
-        progress_bar.close()
+            # Use a temporary file for the download process
+            with open(temp_folder_path, 'wb') as f:
+                for data in response.iter_content(1024):
+                    progress_bar.update(len(data))
+                    f.write(data)
 
-        # Rename the temporary file to the final file name
-        os.rename(temp_folder_path, folder_path)
+            progress_bar.close()
 
-        if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
-            print("ERROR, something went wrong")
+            # Rename the temporary file to the final file name
+            os.rename(temp_folder_path, folder_path)
 
-        os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console
-        sys.stdout.write("\033[F")  # Move the cursor to the previous line
-        sys.stdout.write("\033[K")  # Clear the line
-        print(f"Downloading files from {artist_url}:")
-        print(f"Downloading: {file_name}")
+            if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
+                print("ERROR, something went wrong")
+                return False
+
+            print(f"Finished downloading: {file_name} from {artist_url}")
+            clear_console(artist_name or artist_url)  # Use artist_name if available, otherwise use artist_url
+
+            return True  # Indicate download success
+        else:
+            return False  # Indicate download failure
+    except Exception as e:
+        print(f"An error occurred while downloading {file_name}: {str(e)}")
+        return False  # Indicate download failure
+
 
 
 def run_with_base_url(url_list, data, json_file):
@@ -188,6 +224,9 @@ def run_with_base_url(url_list, data, json_file):
                 print(f"Artist ID {artist_id} not found in data.")
                 continue
 
+            # Clear the console and show the artist name
+            clear_console(artist_name)
+
             if service == 'Discord':
                 discord_download(artist_id)
                 continue
@@ -212,26 +251,38 @@ def run_with_base_url(url_list, data, json_file):
 
                 base_url = "/".join(url.split("/")[:3])
 
+                # Initialize a flag to track if all downloads for this post are successful
+                all_downloads_successful = True
+
                 if post_id in all_downloaded_posts:
                     print(f"Skipping download: Post {post_id} already downloaded")
+                    # Clear the console and show the artist name
+                    clear_console(artist_name)
                     continue
 
                 if post_id in downloaded_post_list:
                     print(f"Skipping download: Post {post_id} already downloaded")
+                    # Clear the console and show the artist name
+                    clear_console(artist_name)
                     continue
 
                 for attachment in post.get('attachments', []):
                     attachment_url = base_url + attachment.get('path', '')
                     attachment_name = sanitize_attachment_name(attachment.get('name', ''))
                     if attachment_url and attachment_name:
-                        download_file(attachment_url, post_folder_path, attachment_name, url)
+                        response = download_file(attachment_url, post_folder_path, attachment_name, url, artist_name)
+                        # Pass artist_name to download_file
+                        if response == False:  # Check if download was unsuccessful
+                            all_downloads_successful = False  # Set the flag to false
 
                 file_info = post.get('file')
                 if file_info and 'name' in file_info and 'path' in file_info:
                     file_url = base_url + file_info['path']
                     file_name = sanitize_attachment_name(file_info['name'])
                     if file_url and file_name:
-                        download_file(file_url, post_folder_path, file_name, url)
+                        response = download_file(file_url, post_folder_path, file_name, url)
+                        if response == False:  # Check if download was unsuccessful
+                            all_downloads_successful = False  # Set the flag to false
 
                 content = post.get('content', '')
                 post_url = f"{base_url}/{service.lower()}/user/{artist_id.lower()}/post/{post['id']}"
@@ -246,28 +297,27 @@ def run_with_base_url(url_list, data, json_file):
                     processed_users.add(username)
 
                 # After all downloads for this post are complete, add the post ID to downloaded posts and save to JSON.
-                downloaded_post_list.add(post_id)
-                write_downloaded_post(platform_folder, downloaded_post_list)
+                if all_downloads_successful:  # Only add if all downloads are successful
+                    downloaded_post_list.add(post_id)
+                    write_to_downloaded_post_list(platform_folder, downloaded_post_list)
+                    all_downloaded_posts.add(post_id)  # Add post ID to the overall set
 
-                all_downloaded_posts.add(post_id)  # Add post ID to the overall set
 
             if previous_url is not None:
                 if artist_id != previous_artist_id or i == len(url_list) - 1:
                     print("Saving artist to JSON")
+                    # Clear the console and show the artist name
+                    clear_console(artist_name)
                     save_artist_json(previous_url)
             else:
-                # This is the first artist, save it.
-                print("Saving first artist to JSON")
                 save_artist_json(url)
-
-            previous_url = url
-            previous_artist_id = artist_id
 
             previous_url = url
             previous_artist_id = artist_id
 
     except requests.exceptions.RequestException:
         return False
+
 
 
 def save_content_to_txt(folder_name, content, embed, post_url):
