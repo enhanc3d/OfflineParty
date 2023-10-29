@@ -33,11 +33,11 @@ Y88b. .d88P 888        888        888        888   888   Y8888 888             8
  "Y88888P"  888        888        88888888 8888888 888    Y888 8888888888      888    d88P     888 888   T88b    888         888                                                                                                                                  
     '''
     print(ascii_art.strip())
+    time.sleep(1)
+
 
 def check_for_updates():
     global updates_available  # Make updates_available a global variable
-    # Display ASCII Art
-    display_ascii_art()
     try:
         url = "https://api.github.com/repos/2000GHz/OfflineParty/releases/latest"
         response = requests.get(url)
@@ -45,7 +45,6 @@ def check_for_updates():
         
         if latest_version != __version__:
             updates_available = True  # Set updates_available to True if updates are found
-        time.sleep(1)
     except Exception as e:
         print(f"Could not check for updates: {e}")
 
@@ -77,7 +76,8 @@ def load_settings():
         'stash_path': './',
         'post_limit': 0,  # 0 downloads all posts from the artist, it's the default value
         'disk_limit': 0,  # 0 disables the download limit. Expressed in MB
-        'download_preference' : 0 
+        'download_preference' : 0,
+        'show_startup_logo' : 1
     }
 
     # Check if the directory exists, if not create it
@@ -213,15 +213,16 @@ def settings_menu():
         print(f"2. Change post download limit (Current setting: {format_setting('post_limit', settings['post_limit'])})")
         print(f"3. Change disk size limit (Current setting: {format_setting('disk_limit', settings['disk_limit'])} MB)")
         print(f"4. Change Discord post saving preference (Current setting: {format_setting('download_preference', description)})")
-        print("5. Save and exit")
-        print("6. Discard changes and go back")
+        print(f"5. Toggle OfflineParty logo (Current setting: {format_setting('show_startup_logo', settings['show_startup_logo'])})")
+        print("6. Save and exit")
+        print("7. Discard changes and go back")
 
         choice = input("\nEnter your choice: ")
 
         def has_changes():
             return any(original_settings[key] != settings[key] for key in original_settings) or original_description != description
 
-        if choice in ['1', '2', '3', '4']:
+        if choice in ['1', '2', '3', '4','5']:
             changes_unsaved = has_changes()  # Update the flag based on actual changes
 
         if choice == '1':
@@ -267,8 +268,11 @@ def settings_menu():
             except ValueError:
                 print("Invalid input. Please enter a number.")
                 time.sleep(2)
-
+        
         elif choice == '5':
+            settings['show_startup_logo'] = not settings['show_startup_logo']
+
+        elif choice == '6':
             save_settings(settings)  # Assume this function is defined elsewhere
             changes_unsaved = False  # Reset flag to False after saving
             original_settings = settings.copy()  # Update original settings to new saved settings
@@ -277,7 +281,7 @@ def settings_menu():
             time.sleep(2)
             break
 
-        elif choice == '6':
+        elif choice == '7':
             break
         else:
             print("Invalid choice. Please try again.")
@@ -665,8 +669,9 @@ def delete_json_file(filename):
 
 if __name__ == "__main__":
     os.system('cls' if os.name == 'nt' else 'clear')
+    settings = load_settings()
+    if settings['show_startup_logo']: display_ascii_art()
     check_for_updates()
-    load_settings()
     parser = argparse.ArgumentParser(description="Download data from websites.")
     group = parser.add_mutually_exclusive_group()  # Removed required=True
     group.add_argument('-k', '--kemono', action='store_true', help="Download data from Kemono")
