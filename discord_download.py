@@ -6,8 +6,16 @@ from pathvalidate import sanitize_filename
 from json_handling import save_to_kemono_favorites
 
 CONFIG_PATH = "Config"
-SETTINGS_FILE = os.path.join(CONFIG_PATH, "user_settings.yml")
+SETTINGS_FILE = os.path.join(CONFIG_PATH, "user_settings.yaml")
 BASE_URL = "https://kemono.su"  # Updated base URL
+
+def read_stash_path_from_yaml():
+    """Read stash_path from the YAML settings file."""
+    if os.path.exists(SETTINGS_FILE):
+        with open(SETTINGS_FILE, 'r') as f:
+            settings = yaml.safe_load(f)
+            return settings.get('stash_path', '')
+    return ''
 
 
 def clear_console(artist_name_or_id, channel_name=None):
@@ -39,24 +47,33 @@ def get_artist_name_from_id(artist_id, combined_data):
 
 def get_or_set_download_preference():
     """Get the user's download preference or prompt them to set it."""
+    settings = {}
     if os.path.exists(SETTINGS_FILE):
         with open(SETTINGS_FILE, 'r') as f:
             settings = yaml.safe_load(f)
-            return settings.get('download_preference', None)
+            preference = settings.get('download_preference', 0)
+            if preference != 0:
+                return str(preference)
 
     # Prompt the user for their preference
     choice = ''
     while choice not in ['1', '2']:
-        print("With Discord users the files can get a little messy, so you have 2 options to choose from:")
+        print("\nWith Discord users the files can get a little messy, so you have 2 options to choose from:")
+        print("You can change this later in settings.\n")
         print("1. Save each post in a separate folder.")
         print("2. Save all files in the channel folder.")
-        choice = input("Enter your choice (1/2): ").strip()
+        choice = input("\nEnter your choice (1/2): ")
+        os.system('cls' if os.name == 'nt' else 'clear')
+    choice = int(choice)
 
-    # Save the choice to the settings file
+    # Update the download_preference in the settings dictionary
+    settings['download_preference'] = choice
+
+    # Save the updated settings back to the YAML file
     if not os.path.exists(CONFIG_PATH):
         os.makedirs(CONFIG_PATH)
     with open(SETTINGS_FILE, 'w') as f:
-        yaml.dump({'download_preference': choice}, f)
+        yaml.dump(settings, f)
 
     return choice
 
@@ -132,13 +149,15 @@ def save_content_to_txt(folder_name, content, embeds, post):
 
 
 def scrape_discord_server(server_id):
+    stash_path = read_stash_path_from_yaml()
     creators_list = fetch_creator_data()
     artist_name = sanitize_filename(get_artist_name_from_id(server_id, creators_list))
 
     # If artist name is not found, default to server_id
     artist_name_or_id = artist_name if artist_name else server_id
 
-    base_path = os.path.join("Creators", "Kemono", artist_name_or_id)
+    # Use stash_path from YAML file as the base directory
+    base_path = os.path.join(stash_path, "Creators", "Kemono", artist_name_or_id)
 
     download_preference = get_or_set_download_preference()
 
