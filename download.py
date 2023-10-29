@@ -62,6 +62,18 @@ def read_user_txt_list():
         run_with_base_url(urls, artist_id_to_name, json_data)
 
 
+def clear_console(artist_name_id_or_url, channel_name=None):
+    if artist_name_id_or_url is None:
+        artist_name_id_or_url = "Unknown Artist"  # Add a default value
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print(f"{'='*(len(artist_name_id_or_url)+24)}")
+    if channel_name:
+        print(f"Downloading posts from: {artist_name_id_or_url} in channel: {channel_name}")
+    else:
+        print(f"Downloading posts from: {artist_name_id_or_url}")
+    print(f"{'='*(len(artist_name_id_or_url)+24)}\n")
+
+
 # Function to read downloaded posts list from .json file
 def read_downloaded_posts_list(platform_folder):
     file_path = os.path.join(platform_folder, "downloaded_posts.json")
@@ -113,13 +125,13 @@ def get_with_retry(url, retries=3, stream=False):
         except requests.exceptions.RequestException as e:
             print(f"Failed to get {url}, attempt {i + 1}")
             if i == retries - 1:
-                print(f"Failed to download {url}", 'logging to errors.txt')
+                print(f"Failed to download {url}, logging to errors.txt")
                 with open("errors.txt", 'a') as error_file:
-                    error_line = f"{url}  -- {str(e)}\n"
+                    error_line = f"{url} -- {str(e)}\n"
                     error_file.write(error_line)
 
 
-def download_file(url, folder_name, file_name, artist_url):
+def download_file(url, folder_name, file_name, artist_url, artist_name=None):
     folder_path = os.path.join(folder_name, file_name)
     temp_folder_path = os.path.join(folder_name, file_name + ".temp")
 
@@ -138,7 +150,8 @@ def download_file(url, folder_name, file_name, artist_url):
         progress_bar = tqdm(total=total_size_in_bytes,
                             unit='iB',
                             unit_scale=True,
-                            leave=False)
+                            leave=True,
+                            desc=file_name)
 
         # Use a temporary file for the download process
         with open(temp_folder_path, 'wb') as f:
@@ -153,15 +166,12 @@ def download_file(url, folder_name, file_name, artist_url):
 
         if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
             print("ERROR, something went wrong")
-            return False  # Indicate download failure
+            return False
 
-        os.system('cls' if os.name == 'nt' else 'clear')  # Clear the console
-        sys.stdout.write("\033[F")  # Move the cursor to the previous line
-        sys.stdout.write("\033[K")  # Clear the line
-        print(f"Downloading files from {artist_url}:")
-        print(f"Downloading: {file_name}")
+        print(f"Finished downloading: {file_name} from {artist_url}")
+        clear_console(artist_name or artist_url)  # Use artist_name if available, otherwise use artist_url
 
-        return True  # Indicate download success
+        return True # Indicate download success
     else:
         return False  # Indicate download failure
 
@@ -193,6 +203,9 @@ def run_with_base_url(url_list, data, json_file):
                 print(f"Artist ID {artist_id} not found in data.")
                 continue
 
+            # Clear the console and show the artist name
+            clear_console(artist_name)
+
             if service == 'Discord':
                 discord_download(artist_id)
                 continue
@@ -222,17 +235,22 @@ def run_with_base_url(url_list, data, json_file):
 
                 if post_id in all_downloaded_posts:
                     print(f"Skipping download: Post {post_id} already downloaded")
+                    # Clear the console and show the artist name
+                    clear_console(artist_name)
                     continue
 
                 if post_id in downloaded_post_list:
                     print(f"Skipping download: Post {post_id} already downloaded")
+                    # Clear the console and show the artist name
+                    clear_console(artist_name)
                     continue
 
                 for attachment in post.get('attachments', []):
                     attachment_url = base_url + attachment.get('path', '')
                     attachment_name = sanitize_attachment_name(attachment.get('name', ''))
                     if attachment_url and attachment_name:
-                        response = download_file(attachment_url, post_folder_path, attachment_name, url)
+                        response = download_file(attachment_url, post_folder_path, attachment_name, url, artist_name)
+                        # Pass artist_name to download_file
                         if response == False:  # Check if download was unsuccessful
                             all_downloads_successful = False  # Set the flag to false
 
@@ -263,9 +281,12 @@ def run_with_base_url(url_list, data, json_file):
                     write_downloaded_post(platform_folder, downloaded_post_list)
                     all_downloaded_posts.add(post_id)  # Add post ID to the overall set
 
+
             if previous_url is not None:
                 if artist_id != previous_artist_id or i == len(url_list) - 1:
                     print("Saving artist to JSON")
+                    # Clear the console and show the artist name
+                    clear_console(artist_name)
                     save_artist_json(previous_url)
             else:
                 save_artist_json(url)
