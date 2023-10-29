@@ -42,7 +42,7 @@ def load_settings():
     settings = {
         'stash_path': './',
         'post_limit': 0,  # 0 downloads all posts from the artist, it's the default value
-        'disk_limit': 0,  # Placeholder value, in MB
+        'disk_limit': 0,  # 0 disables the download limit. Expressed in MB
         'download_preference' : 0 
     }
 
