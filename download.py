@@ -18,24 +18,26 @@ from discord_download import scrape_discord_server as discord_download
 def clear_console(artist_name_id_or_url, channel_name=None):
     if artist_name_id_or_url is None:
         artist_name_id_or_url = "Unknown Artist"  # Add a default value
+    
     os.system('cls' if os.name == 'nt' else 'clear')
-    print(f"{'='*(len(artist_name_id_or_url)+24)}")
+    
+    separator = '=' * (len(artist_name_id_or_url) + 24)
+    print(separator)
+    
     if channel_name:
         print(f"Downloading posts from: {artist_name_id_or_url} in channel: {channel_name}")
     else:
         print(f"Downloading posts from: {artist_name_id_or_url}")
-    print(f"{'='*(len(artist_name_id_or_url)+24)}\n")
-
+    
+    print(separator)
 
 # Map Kemono artist IDs to their names
 def create_artist_id_to_name_mapping(data):
     if isinstance(data, dict):
-        if "id" in data and "name" in data:
-            return {data["id"]: data["name"].capitalize()}
-        else:
-            return {}
+        # If "id" and "name" are in the data:
+        return {data.get("id", ""): data.get("name", "").capitalize()}
     elif isinstance(data, list):
-        return {item["id"]: item["name"].capitalize() for item in data if isinstance(item, dict) and "id" in item and "name" in item}
+        return {item.get("id", ""): item.get("name", "").capitalize() for item in data if isinstance(item, dict)}
     else:
         return {}  # Return an empty dictionary for unsupported data types
 
@@ -84,6 +86,7 @@ def read_downloaded_posts_list(platform_folder):
     if os.path.exists(file_path):
         with open(file_path, 'r', encoding='utf-8') as file:
             downloaded_posts = set(json.load(file))
+    
     return downloaded_posts
 
 # Function to write downloaded post IDs to .json file
