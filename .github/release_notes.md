@@ -1,20 +1,14 @@
-
-### Release Notes for version 1.3.7
+### Release Notes for version 1.4.1
 
 **Changes**
 
 `download.py`
-    - Accelerated user page download process by storing fully downloaded posts in a .txt file, this reduces unneeded HTTP calls
-    - Removed the old fallback methods, since there is no longer a backup server
-    - Fixed the save error to txt function, which was broken for a long time
+    - Handling of connection loss during downloads by using retries and timeouts
+    - Prettified the console output for downloads
+    -  Fixed error where posts could be added to the downloaded list even if there were errors in the download
 
 `get_favorites.py`
-    - Merged the favorite and non favorite user fetching function
-    - Improved readability of the code
-    - Removed fallback methods
-
-`discord_download.py`
-    - Fixed discord download in general, which was broken by the new API
+    - Fixed update discovery of discord users
 
 **Future changes**
 
