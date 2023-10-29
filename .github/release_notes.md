@@ -3,18 +3,22 @@
 **Changes**
 
 `download`
-    - Added menu, flags are still available, but this can make things easier
-    - Added settings menu, not accesible with flags, with some interesting features in it:
-        - Ability to change the directory of the Creators folder (Finally!)
-        - Ability to add a limit of posts to download from each user
-        - Ability to stablish a disk size limit, it will throw warnings when we're closing to our limit and has checks in place to avoid overpassing it
-        - Ability to easily change your Discord download preference between all posts in the channel folder or separate folders for each post (This was possible before, but it would only be prompted during the first Discord download and to change it you'd have to manually edit the YAML file)
-
+* Added menu, flags are still available, but this can make things easier
+* Added settings menu, not accesible with flags, with some interesting features in it:
+    - Ability to change the directory of the Creators folder (Finally!)
+    - Ability to add a limit of posts to download from each user
+    - Ability to stablish a disk size limit, it will throw warnings when we're closing to our limit and has checks in place to avoid overpassing it
+    - Ability to easily change your Discord download preference between all posts in the channel folder or separate folders for each post (This was possible before, but it would only be prompted during the first Discord download and to change it you'd have to manually edit the YAML file)
+ 
 `discord_download`
-    - Reading path from the YAML to match with `download.py`
+* Reading path from the YAML to match with `download.py`
 
 `user_search`
-    - Simplified yes or no retry prompt, pretty simple change but why not log it I guess
+* Simplified yes or no retry prompt, pretty simple change but why not log it I guess
+
+`Installation Scripts`
+* Gave them executable permissions, so you *should* be able to run them just double clicking on them
+
 
 **Future changes**
 
