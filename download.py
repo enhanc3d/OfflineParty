@@ -8,6 +8,7 @@ import html2text
 import get_favorites
 from tqdm import tqdm
 from bs4 import BeautifulSoup
+from datetime import datetime
 from pathvalidate import sanitize_filename
 from user_search import main as user_search
 from json_handling import lookup_and_save_user as save_artist_json
@@ -130,8 +131,9 @@ def get_with_retry(url, retries=5, stream=False, timeout=30, delay=30):
                 time.sleep(delay)  # Wait for 'delay' seconds before the next retry
             else:
                 print(f"Failed to download {url}, logging to errors.txt")
+                current_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # Get the current date and time
                 with open("errors.txt", 'a') as error_file:
-                    error_line = f"{url} -- {str(e)}\n"
+                    error_line = f"{current_date} - {url} -- {str(e)}\n"  # Include the current date and time
                     error_file.write(error_line)
                 return None  # Explicitly return None if all retries fail
 
