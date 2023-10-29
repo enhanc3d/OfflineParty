@@ -78,6 +78,41 @@ def save_settings(settings):
         yaml.dump(settings, settings_file, default_flow_style=False)
 
 
+def get_folder_size(folder_path):
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(folder_path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            # Skip if it is symbolic link
+            if not os.path.islink(fp):
+                total_size += os.path.getsize(fp)
+    return total_size // (1024 * 1024)  # convert bytes to MB
+
+
+def check_disk_limit():
+    settings = load_settings()
+    disk_limit = settings['disk_limit']  # Fetch disk limit from settings
+    creators_folder = os.path.join(settings['stash_path'], 'Creators')
+
+    if disk_limit == 0:
+        return True  # Skip disk limit check if set to 0
+
+    if os.path.exists(creators_folder):
+        current_size = get_folder_size(creators_folder)
+        percentage_used = (current_size / disk_limit) * 100
+
+        if percentage_used >= 70:
+            print(f"Warning: You are using {percentage_used:.2f}% of your disk limit.")
+            if percentage_used >= 100:
+                print("You have reached or exceeded your disk limit. Exiting.")
+                time.sleep(10)
+                sys.exit(1)
+
+        return percentage_used < 100
+
+    return True  # Return True if Creators folder doesn't exist yet
+
+
 def settings_menu():
     settings = load_settings()  # Assume this function is defined elsewhere
     original_settings = settings.copy()  # Store the original settings for comparison
@@ -303,6 +338,9 @@ def get_with_retry(url, retries=5, stream=False, timeout=30, delay=30):
 
 
 def download_file(url, folder_name, file_name, artist_url, artist_name):
+    if not check_disk_limit():  # Check disk limit before downloading
+        print("Skipping download due to disk limit reached.")
+        return False
     try:
         folder_path = os.path.join(folder_name, file_name)
         temp_folder_path = os.path.join(folder_name, file_name + ".temp")
@@ -563,8 +601,8 @@ if __name__ == "__main__":
     load_settings()
     parser = argparse.ArgumentParser(description="Download data from websites.")
     group = parser.add_mutually_exclusive_group()  # Removed required=True
-    group.add_argument('-k', '--kemono', action='store_true', help="Download data from kemono")
-    group.add_argument('-c', '--coomer', action='store_true', help="Download data from coomer")
+    group.add_argument('-k', '--kemono', action='store_true', help="Download data from Kemono")
+    group.add_argument('-c', '--coomer', action='store_true', help="Download data from Coomer")
     group.add_argument('-b', '--both', action='store_true', help="Download data from both sites")
     group.add_argument('-u', '--user', type=str, metavar='USERNAME/URL', help="Only download posts from specific users, separated by commas")
     group.add_argument('-l', '--list', action='store_true', help="Read usernames from user_list.txt")
@@ -580,8 +618,8 @@ if __name__ == "__main__":
             print(separator)
             print("Main Menu")
             print(separator,"\n")
-            print("1. Download data from kemono")
-            print("2. Download data from coomer")
+            print("1. Download data from Kemono")
+            print("2. Download data from Coomer")
             print("3. Download data from both sites")
             print("4. Search by user(s) or URL(s)")
             print("5. Read usernames from user_list.txt")
