@@ -102,13 +102,31 @@ def check_disk_limit():
         percentage_used = (current_size / disk_limit) * 100
 
         if percentage_used >= 70:
-            print(f"Warning: You are using {percentage_used:.2f}% of your disk limit.")
+            print(f"\033[91mWarning: You are using {percentage_used:.2f}% of your disk limit.\033[0m")
             if percentage_used >= 100:
                 print("You have reached or exceeded your disk limit. Exiting.")
                 time.sleep(10)
                 sys.exit(1)
 
         return percentage_used < 100
+
+    return True  # Return True if Creators folder doesn't exist yet
+
+
+def check_file_size_within_limit(file_size):
+    settings = load_settings()
+    disk_limit = settings['disk_limit']  # Fetch disk limit from settings in MB
+    creators_folder = os.path.join(settings['stash_path'], 'Creators')
+
+    if disk_limit == 0:
+        return True  # Skip disk limit check if set to 0
+
+    if os.path.exists(creators_folder):
+        current_size = get_folder_size(creators_folder)  # in MB
+        remaining_space = disk_limit - current_size  # in MB
+        file_size_mb = file_size / (1024 * 1024)  # Convert file size to MB
+
+        return file_size_mb <= remaining_space
 
     return True  # Return True if Creators folder doesn't exist yet
 
@@ -360,6 +378,10 @@ def download_file(url, folder_name, file_name, artist_url, artist_name):
 
         if response and response.status_code == 200:
             total_size_in_bytes = int(response.headers.get('content-length', 0))
+            # Check if this file size would exceed the disk limit
+            if not check_file_size_within_limit(total_size_in_bytes):
+                print(f"Skipping download: {file_name} would exceed disk limit.")
+                return False
             progress_bar = tqdm(total=total_size_in_bytes,
                                 unit='iB',
                                 unit_scale=True,
