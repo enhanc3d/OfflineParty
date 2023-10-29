@@ -127,9 +127,9 @@ def main(input_username):
                        f"Did you spell the URL or username correctly?\n"
                        f"Example URL: {example_url}\n"
                        f"Example Username: {example_username}\n"
-                       "Would you like to try again? (yes/no): ").strip().lower()
+                       "Would you like to try again? (y/n): ").strip().lower()
 
-        if choice == 'yes':
+        if choice == 'y':
             input_username = input("Please enter the correct URL or username: ")
             matched_entries = find_and_return_entries(combined_data, input_username)
         else:
