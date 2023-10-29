@@ -5,7 +5,7 @@
 `download.py`
     - Handling of connection loss during downloads by using retries and timeouts
     - Prettified the console output for downloads
-    -  Fixed error where posts could be added to the downloaded list even if there were errors in the download
+    - Fixed error where posts could be added to the downloaded list even if there were errors in the download
 
 `get_favorites.py`
     - Fixed update discovery of discord users
