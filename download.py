@@ -41,7 +41,7 @@ def load_settings():
     # Default settings
     settings = {
         'stash_path': './',
-        'post_limit': 100,  # Placeholder value
+        'post_limit': 0,  # 0 downloads all posts from the artist, it's the default value
         'disk_limit': 10000,  # Placeholder value, in MB
         'download_preference' : 0 
     }
@@ -133,6 +133,7 @@ def settings_menu():
 
         elif choice == '2':
             try:
+                print("\n0 = Download all posts from the user")
                 new_limit = int(input("\nEnter new post download limit (Current: {}): ".format(settings['post_limit'])))
                 settings['post_limit'] = new_limit
             except ValueError:
@@ -141,7 +142,7 @@ def settings_menu():
 
         elif choice == '3':
             try:
-                new_disk_limit = int(input("\nEnter new disk size limit (Current: {} MB): ".format(settings['disk_limit'])))
+                new_disk_limit = int(input("Enter new disk size limit (Current: {} MB): ".format(settings['disk_limit'])))
                 settings['disk_limit'] = new_disk_limit
             except ValueError:
                 print("Invalid input. Please enter a number.")
@@ -301,7 +302,7 @@ def get_with_retry(url, retries=5, stream=False, timeout=30, delay=30):
                 return None  # Explicitly return None if all retries fail
 
 
-def download_file(url, folder_name, file_name, artist_url, artist_name=None):
+def download_file(url, folder_name, file_name, artist_url, artist_name):
     try:
         folder_path = os.path.join(folder_name, file_name)
         temp_folder_path = os.path.join(folder_name, file_name + ".temp")
@@ -367,7 +368,10 @@ def run_with_base_url(url_list, data, json_file):
     # Explicitly load settings within the function
     settings = load_settings()
     stash_path = settings.get('stash_path', '')  # If stash_path is not found, default to empty string
-    
+    post_limit = settings.get('post_limit', 0)  # Fetch the post limit from settings, default to 0 (download all)
+
+    # Dictionary to keep track of the number of downloaded posts for each artist
+    artist_post_count = {}
 
     try:
         all_downloaded_posts = set()
@@ -383,6 +387,11 @@ def run_with_base_url(url_list, data, json_file):
             artist_id = url_parts[7].split("?")[0]
             artist_name = data.get(artist_id, None)
 
+            # Check if we've reached the post limit for this artist
+            if post_limit > 0 and artist_post_count.get(artist_id, 0) >= post_limit:
+                print(f"Skipping {artist_name} due to reaching post limit.")
+                continue
+
             if artist_name:
                 artist_name = artist_name.capitalize()
             else:
@@ -395,8 +404,7 @@ def run_with_base_url(url_list, data, json_file):
                 discord_download(artist_id)
                 continue
 
-            # Use artists_folder directly
-            domain_folder = os.path.join(stash_path,"Creators", domain)
+            domain_folder = os.path.join(stash_path, "Creators", domain)
             artist_folder = os.path.join(domain_folder, sanitize_filename(artist_name))
             platform_folder = os.path.join(artist_folder, sanitize_filename(service))
 
@@ -405,7 +413,7 @@ def run_with_base_url(url_list, data, json_file):
             response = get_with_retry(url)
             response_data = json.loads(response.text)
 
-            downloaded_post_list = read_downloaded_posts_list(platform_folder)  # Read existing downloaded posts from JSON
+            downloaded_post_list = read_downloaded_posts_list(platform_folder)
 
             for post_num, post in enumerate(response_data, start=1):
                 post_id = post.get('id')
@@ -415,20 +423,17 @@ def run_with_base_url(url_list, data, json_file):
 
                 base_url = "/".join(url.split("/")[:3])
 
-                # Initialize a flag to track if all downloads for this post are successful
                 all_downloads_successful = True
 
-                if post_id in all_downloaded_posts:
+                if post_id in all_downloaded_posts or post_id in downloaded_post_list:
                     print(f"Skipping download: Post {post_id} already downloaded")
-                    # Clear the console and show the artist name
                     clear_console(artist_name)
                     continue
 
-                if post_id in downloaded_post_list:
-                    print(f"Skipping download: Post {post_id} already downloaded")
-                    # Clear the console and show the artist name
-                    clear_console(artist_name)
-                    continue
+                # If we've reached the post limit for this artist, skip further posts
+                if post_limit > 0 and artist_post_count.get(artist_id, 0) >= post_limit:
+                    print(f"Reached post limit for {artist_name}. Skipping further posts.")
+                    break
 
                 for attachment in post.get('attachments', []):
                     attachment_url = base_url + attachment.get('path', '')
@@ -444,7 +449,7 @@ def run_with_base_url(url_list, data, json_file):
                     file_url = base_url + file_info['path']
                     file_name = sanitize_attachment_name(file_info['name'])
                     if file_url and file_name:
-                        response = download_file(file_url, post_folder_path, file_name, url)
+                        response = download_file(file_url, post_folder_path, file_name, url, artist_name)
                         if response == False:  # Check if download was unsuccessful
                             all_downloads_successful = False  # Set the flag to false
 
@@ -461,16 +466,17 @@ def run_with_base_url(url_list, data, json_file):
                     processed_users.add(username)
 
                 # After all downloads for this post are complete, add the post ID to downloaded posts and save to JSON.
-                if all_downloads_successful:  # Only add if all downloads are successful
+                if all_downloads_successful:
                     downloaded_post_list.add(post_id)
                     write_to_downloaded_post_list(platform_folder, downloaded_post_list)
-                    all_downloaded_posts.add(post_id)  # Add post ID to the overall set
+                    all_downloaded_posts.add(post_id)
 
+                    # Increment the post count for this artist
+                    artist_post_count[artist_id] = artist_post_count.get(artist_id, 0) + 1
 
             if previous_url is not None:
                 if artist_id != previous_artist_id or i == len(url_list) - 1:
                     print("Saving artist to JSON")
-                    # Clear the console and show the artist name
                     clear_console(artist_name)
                     save_artist_json(previous_url)
             else:
