@@ -6,6 +6,7 @@ import yaml
 import requests
 import argparse
 import html2text
+import webbrowser
 import get_favorites
 from tqdm import tqdm
 from bs4 import BeautifulSoup
@@ -14,6 +15,40 @@ from pathvalidate import sanitize_filename
 from user_search import main as user_search
 from json_handling import lookup_and_save_user as save_artist_json
 from discord_download import scrape_discord_server as discord_download
+
+__version__ = "v1.4.2"
+
+updates_available = False  # Variable to store whether updates are available
+first_run = True  # Variable to identify the first run
+
+def display_ascii_art():
+    ascii_art = '''
+ .d88888b.  8888888888 8888888888 888      8888888 888b    888 8888888888      8888888b.     d8888 8888888b. 88888888888 Y88b   d88P 
+d88P" "Y88b 888        888        888        888   8888b   888 888             888   Y88b   d88888 888   Y88b    888      Y88b d88P  
+888     888 888        888        888        888   88888b  888 888             888    888  d88P888 888    888    888       Y88o88P   
+888     888 8888888    8888888    888        888   888Y88b 888 8888888         888   d88P d88P 888 888   d88P    888        Y888P    
+888     888 888        888        888        888   888 Y88b888 888             8888888P" d88P  888 8888888P"     888         888     
+888     888 888        888        888        888   888  Y88888 888             888      d88P   888 888 T88b      888         888     
+Y88b. .d88P 888        888        888        888   888   Y8888 888             888     d8888888888 888  T88b     888         888     
+ "Y88888P"  888        888        88888888 8888888 888    Y888 8888888888      888    d88P     888 888   T88b    888         888                                                                                                                                  
+    '''
+    print(ascii_art)
+    first_run = False  # Set first_run to False after displaying once
+
+def check_for_updates():
+    global updates_available  # Make updates_available a global variable
+    # Display ASCII Art
+    display_ascii_art()
+    try:
+        url = "https://api.github.com/repos/2000GHz/OfflineParty/releases/latest"
+        response = requests.get(url)
+        latest_version = response.json()['tag_name']
+        
+        if latest_version != __version__:
+            updates_available = True  # Set updates_available to True if updates are found
+        time.sleep(1)
+    except Exception as e:
+        print(f"Could not check for updates: {e}")
 
 
 def clear_console(artist_name_id_or_url, channel_name=None):
@@ -134,7 +169,6 @@ def check_file_size_within_limit(file_size):
 def settings_menu():
     settings = load_settings()  # Assume this function is defined elsewhere
     original_settings = settings.copy()  # Store the original settings for comparison
-    separator = '=' * 13
     changes_unsaved = False  # Flag to keep track of unsaved changes
 
     # Set the initial description for Discord download preference
@@ -151,8 +185,19 @@ def settings_menu():
 
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')  # Clear console before displaying menu
+
+        # Add a flag for unsaved changes and color it red if changes are unsaved
+        unsaved_changes_warning = " - \033[91mWarning! You have changes unsaved\033[0m" if changes_unsaved else ""
+        menu_title = "Settings Menu" + unsaved_changes_warning
+
+        # Calculate the length of the ANSI escape codes used for red color
+        ansi_code_length = len("\033[91m") + len("\033[0m") if changes_unsaved else 0
+
+        # Create the separator line
+        separator = '=' * (len(menu_title) - ansi_code_length)
+
         print(separator)
-        print("Settings Menu", " - Warning! You have changes unsaved" if changes_unsaved else "")
+        print(menu_title)
         print(separator, "\n")
 
         def format_setting(label, value):
@@ -620,6 +665,8 @@ def delete_json_file(filename):
 
 
 if __name__ == "__main__":
+    os.system('cls' if os.name == 'nt' else 'clear')
+    check_for_updates()
     load_settings()
     parser = argparse.ArgumentParser(description="Download data from websites.")
     group = parser.add_mutually_exclusive_group()  # Removed required=True
@@ -633,20 +680,35 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+
     if not any(vars(args).values()):  # Check if any arguments were provided
         while True:
             os.system('cls' if os.name == 'nt' else 'clear')
-            separator = '=' * 9
+            menu_title = "Main Menu"
+            update_warning = " - Updates Available!" if updates_available else ""
+            full_title = menu_title + update_warning
+
+            # Calculate the length of the ANSI escape codes used for green color
+            ansi_code_length = 0
+            if updates_available:
+                full_title = f"Main Menu - \033[92mUpdates Available!\033[0m"
+                ansi_code_length = len("\033[92m") + len("\033[0m")
+            
+            # Create the separator line
+            separator = '=' * (len(full_title) - ansi_code_length)
+
             print(separator)
-            print("Main Menu")
-            print(separator,"\n")
+            print(full_title)
+            print(separator, "\n")
             print("1. Download data from Kemono")
             print("2. Download data from Coomer")
             print("3. Download data from both sites")
             print("4. Search by user(s) or URL(s)")
             print("5. Read usernames from user_list.txt")
             print("6. Settings")
-            print("7. Exit")
+            if updates_available:
+                print("7. Download Updates (Opens in default browser)")
+            print("8. Exit" if updates_available else "7. Exit")
 
             choice = input("Enter your choice: ")
 
@@ -669,12 +731,18 @@ if __name__ == "__main__":
                 os.system('cls' if os.name == 'nt' else 'clear')
                 settings_menu()
             elif choice == '7':
+                if updates_available:
+                    webbrowser.open("https://github.com/2000GHz/OfflineParty/releases/latest")
+                else:
+                    print("Exiting...")
+                    break
+            elif choice == '8' and updates_available:
                 print("Exiting...")
                 break
             else:
                 print("Invalid choice. Please try again.")
     else:
-        # Your existing code to handle flags
+        # Existing code to handle flags
         if args.user:
             users = [user.strip() for user in args.user.split(",")]
 
