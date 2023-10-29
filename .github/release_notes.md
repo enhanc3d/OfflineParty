@@ -1,8 +1,11 @@
-### Release Notes for version 1.4.2
+### Release Notes for version 1.4.3
 
-**Changes**
+**Changes** (Leaving the ones from the past version because they are important)
 
 `download`
+* 1.4.3: Added Update Tracker
+* 1.4.3: Prettified menus with color
+
 * Added menu, flags are still available, but this can make things easier
 * Added settings menu, not accesible with flags, with some interesting features in it:
     - Ability to change the directory of the Creators folder (Finally!)
