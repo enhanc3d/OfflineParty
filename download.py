@@ -254,7 +254,7 @@ def create_artist_id_to_name_mapping(data):
 
 
 def read_user_txt_list():
-    dir_path = 'Config'  # Relative path to the current directory
+    dir_path = './'  # Relative path to the current directory
     file_name = 'user_list.txt'
     file_path = os.path.join(dir_path, file_name)
     user_list = []
