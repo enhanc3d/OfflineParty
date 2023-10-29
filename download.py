@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import json
+import yaml
 import requests
 import argparse
 import html2text
@@ -30,6 +31,162 @@ def clear_console(artist_name_id_or_url, channel_name=None):
         print(f"Downloading posts from: {artist_name_id_or_url}")
     
     print(separator)
+
+
+def load_settings():
+    dir_path = 'Config'
+    file_name = 'user_settings.yaml'
+    file_path = os.path.join(dir_path, file_name)
+
+    # Default settings
+    settings = {
+        'stash_path': './',
+        'post_limit': 100,  # Placeholder value
+        'disk_limit': 10000,  # Placeholder value, in MB
+        'download_preference' : 0 
+    }
+
+    # Check if the directory exists, if not create it
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+
+    # Check if the YAML file exists, if not create it
+    if not os.path.exists(file_path):
+        save_settings(settings)
+
+    # Read the YAML file
+    with open(file_path, 'r', encoding='utf-8') as settings_file:
+        try:
+            loaded_settings = yaml.safe_load(settings_file)
+            settings.update(loaded_settings)
+        except yaml.YAMLError as e:
+            print(f"Error reading settings file: {e}")
+
+    return settings
+
+
+def save_settings(settings):
+    dir_path = 'Config'
+    file_name = 'user_settings.yaml'
+    file_path = os.path.join(dir_path, file_name)
+
+    # Check if the directory exists, if not create it
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+
+    with open(file_path, 'w', encoding='utf-8') as settings_file:
+        yaml.dump(settings, settings_file, default_flow_style=False)
+
+
+def settings_menu():
+    settings = load_settings()  # Assume this function is defined elsewhere
+    original_settings = settings.copy()  # Store the original settings for comparison
+    separator = '=' * 13
+    changes_unsaved = False  # Flag to keep track of unsaved changes
+
+    # Set the initial description for Discord download preference
+    old_preference = settings['download_preference']
+    description = ""
+    if old_preference == 0:
+        description = "No preference assigned yet."
+    elif old_preference == 1:
+        description = "Save files in separate folders for each message"
+    elif old_preference == 2:
+        description = "Save all files directly in the channel folder"
+        
+    original_description = description  # Store the original description for comparison
+
+    while True:
+        os.system('cls' if os.name == 'nt' else 'clear')  # Clear console before displaying menu
+        print(separator)
+        print("Settings Menu", " - Warning! You have changes unsaved" if changes_unsaved else "")
+        print(separator, "\n")
+
+        def format_setting(label, value):
+            if label == 'download_preference':
+                compare_value = description
+                original_value = original_description
+            else:
+                compare_value = settings[label]
+                original_value = original_settings[label]
+
+            return "{}{}{}".format("\033[91m" if original_value != compare_value else "\033[94m", value, "\033[0m")
+
+        print(f"1. Change stash path (Current setting: {format_setting('stash_path', settings['stash_path'])})")
+        print(f"2. Change post download limit (Current setting: {format_setting('post_limit', settings['post_limit'])})")
+        print(f"3. Change disk size limit (Current setting: {format_setting('disk_limit', settings['disk_limit'])} MB)")
+        print(f"4. Change Discord post saving preference (Current setting: {format_setting('download_preference', description)})")
+        print("5. Save and exit")
+        print("6. Discard changes and go back")
+
+        choice = input("\nEnter your choice: ")
+
+        def has_changes():
+            return any(original_settings[key] != settings[key] for key in original_settings) or original_description != description
+
+        if choice in ['1', '2', '3', '4']:
+            changes_unsaved = has_changes()  # Update the flag based on actual changes
+
+        if choice == '1':
+            new_path = input("\nEnter new stash path (Current: {}): ".format(settings['stash_path']))
+            settings['stash_path'] = new_path
+
+        elif choice == '2':
+            try:
+                new_limit = int(input("\nEnter new post download limit (Current: {}): ".format(settings['post_limit'])))
+                settings['post_limit'] = new_limit
+            except ValueError:
+                print("Invalid input. Please enter a number.")
+                time.sleep(2)
+
+        elif choice == '3':
+            try:
+                new_disk_limit = int(input("\nEnter new disk size limit (Current: {} MB): ".format(settings['disk_limit'])))
+                settings['disk_limit'] = new_disk_limit
+            except ValueError:
+                print("Invalid input. Please enter a number.")
+                time.sleep(2)
+
+        elif choice == '4':
+            os.system('cls' if os.name == 'nt' else 'clear')
+            print(separator)
+            print("Settings Menu")
+            print(separator, "\n")
+            print("Choose one option from the list:\n")
+            print("0. No preference assigned yet.")
+            print("1. Save files in separate folders for each message.")
+            print("2. Save all files directly in the channel folder.")
+            try:
+                new_discord_download_preference = int(input("\nEnter new Discord download preference: "))
+                settings['download_preference'] = new_discord_download_preference
+                # Update the description based on the new setting
+                if new_discord_download_preference == 0:
+                    description = "No preference assigned yet."
+                elif new_discord_download_preference == 1:
+                    description = "Save files in separate folders for each message"
+                elif new_discord_download_preference == 2:
+                    description = "Save all files directly in the channel folder"
+            except ValueError:
+                print("Invalid input. Please enter a number.")
+                time.sleep(2)
+
+        elif choice == '5':
+            save_settings(settings)  # Assume this function is defined elsewhere
+            changes_unsaved = False  # Reset flag to False after saving
+            original_settings = settings.copy()  # Update original settings to new saved settings
+            original_description = description  # Update original description
+            print("\nChanges saved!")
+            time.sleep(2)
+            break
+
+        elif choice == '6':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+            time.sleep(2)
+        
+        changes_unsaved = has_changes()  # Update the flag based on actual changes after each loop iteration
+
 
 # Map Kemono artist IDs to their names
 def create_artist_id_to_name_mapping(data):
@@ -198,14 +355,22 @@ def download_file(url, folder_name, file_name, artist_url, artist_name=None):
 
 
 def run_with_base_url(url_list, data, json_file):
+    if url_list is None or len(url_list) == 0:
+        print("No URLs to process. Exiting function.")
+        return
     processed_users = set()
     current_artist = None
     current_artist_url = None
-    previous_url = None  # Initialize previous_url
-    previous_artist_id = None  # Initialize previous_artist_id
+    previous_url = None
+    previous_artist_id = None
+
+    # Explicitly load settings within the function
+    settings = load_settings()
+    stash_path = settings.get('stash_path', '')  # If stash_path is not found, default to empty string
+    
 
     try:
-        all_downloaded_posts = set()  # Initialize a set to store all downloaded post IDs
+        all_downloaded_posts = set()
 
         for i, url in enumerate(tqdm(url_list, desc="Downloading pages...")):
             url_parts = url.split("/")
@@ -224,15 +389,14 @@ def run_with_base_url(url_list, data, json_file):
                 print(f"Artist ID {artist_id} not found in data.")
                 continue
 
-            # Clear the console and show the artist name
             clear_console(artist_name)
 
             if service == 'Discord':
                 discord_download(artist_id)
                 continue
 
-            artists_folder = "Creators"
-            domain_folder = os.path.join(artists_folder, domain)
+            # Use artists_folder directly
+            domain_folder = os.path.join(stash_path,"Creators", domain)
             artist_folder = os.path.join(domain_folder, sanitize_filename(artist_name))
             platform_folder = os.path.join(artist_folder, sanitize_filename(service))
 
@@ -319,7 +483,6 @@ def run_with_base_url(url_list, data, json_file):
         return False
 
 
-
 def save_content_to_txt(folder_name, content, embed, post_url):
     folder_path = os.path.join(folder_name, "content.txt")
     comment_section = ""
@@ -391,58 +554,81 @@ def delete_json_file(filename):
 
 
 if __name__ == "__main__":
+    load_settings()
     parser = argparse.ArgumentParser(description="Download data from websites.")
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-k',
-                       '--kemono',
-                       action='store_true',
-                       help="Download data from kemono")
-    group.add_argument('-c',
-                       '--coomer',
-                       action='store_true',
-                       help="Download data from coomer")
-    group.add_argument('-b',
-                       '--both',
-                       action='store_true',
-                       help="Download data from both sites")
-    group.add_argument('-u',
-                        '--user',
-                        type=str,
-                        metavar='USERNAME/URL',
-                        help="Only download posts from specific users, separated by commas")
-    group.add_argument('-l',
-                        '--list',
-                        action='store_true',
-                        help="Read usernames from user_list.txt")
-    
-    parser.add_argument('-r',
-                        '--reset',
-                        action='store_true',
-                        help="Reset JSON file for selected flag")
+    group = parser.add_mutually_exclusive_group()  # Removed required=True
+    group.add_argument('-k', '--kemono', action='store_true', help="Download data from kemono")
+    group.add_argument('-c', '--coomer', action='store_true', help="Download data from coomer")
+    group.add_argument('-b', '--both', action='store_true', help="Download data from both sites")
+    group.add_argument('-u', '--user', type=str, metavar='USERNAME/URL', help="Only download posts from specific users, separated by commas")
+    group.add_argument('-l', '--list', action='store_true', help="Read usernames from user_list.txt")
+
+    parser.add_argument('-r', '--reset', action='store_true', help="Reset JSON file for selected flag")
 
     args = parser.parse_args()
 
-    # Process the --user flag value to get a list of usernames
-    if args.user:
-        users = [user.strip() for user in args.user.split(",")]
+    if not any(vars(args).values()):  # Check if any arguments were provided
+        while True:
+            os.system('cls' if os.name == 'nt' else 'clear')
+            separator = '=' * 9
+            print(separator)
+            print("Main Menu")
+            print(separator,"\n")
+            print("1. Download data from kemono")
+            print("2. Download data from coomer")
+            print("3. Download data from both sites")
+            print("4. Search by user(s) or URL(s)")
+            print("5. Read usernames from user_list.txt")
+            print("6. Settings")
+            print("7. Exit")
 
-    if args.list:
-        read_user_txt_list()
-    elif args.kemono:
-        if args.reset:
-            delete_json_file('Config/kemono_favorites.json')
-        main("kemono")
-    elif args.coomer:
-        if args.reset:
-            delete_json_file('Config/coomer_favorites.json')
-        main("coomer")
-    elif args.user:
-        for user in users:  # Loop over the list of usernames
-            url, username, json_data = user_search(user)
-            artist_id_to_name = create_artist_id_to_name_mapping(json_data)
-            run_with_base_url(url, artist_id_to_name, json_data)
-    elif args.both:
-        if args.reset:
-            delete_json_file('Config/kemono_favorites.json')
-            delete_json_file('Config/coomer_favorites.json')
-        main("both")
+            choice = input("Enter your choice: ")
+
+            if choice == '1':
+                main("kemono")
+            elif choice == '2':
+                main("coomer")
+            elif choice == '3':
+                main("both")
+            elif choice == '4':
+                users = input("Enter usernames or URLs, separated by commas: ").split(',')
+                users = [user.strip() for user in users]
+                for user in users:
+                    url, username, json_data = user_search(user)
+                    artist_id_to_name = create_artist_id_to_name_mapping(json_data)
+                    run_with_base_url(url, artist_id_to_name, json_data)
+            elif choice == '5':
+                read_user_txt_list()
+            elif choice == '6':
+                os.system('cls' if os.name == 'nt' else 'clear')
+                settings_menu()
+            elif choice == '7':
+                print("Exiting...")
+                break
+            else:
+                print("Invalid choice. Please try again.")
+    else:
+        # Your existing code to handle flags
+        if args.user:
+            users = [user.strip() for user in args.user.split(",")]
+
+        if args.list:
+            read_user_txt_list()
+        elif args.kemono:
+            if args.reset:
+                delete_json_file('Config/kemono_favorites.json')
+            main("kemono")
+        elif args.coomer:
+            if args.reset:
+                delete_json_file('Config/coomer_favorites.json')
+            main("coomer")
+        elif args.user:
+            for user in users:  # Loop over the list of usernames
+                url, username, json_data = user_search(user)
+                artist_id_to_name = create_artist_id_to_name_mapping(json_data)
+                run_with_base_url(url, artist_id_to_name, json_data)
+        elif args.both:
+            if args.reset:
+                delete_json_file('Config/kemono_favorites.json')
+                delete_json_file('Config/coomer_favorites.json')
+            main("both")
