@@ -32,8 +32,7 @@ d88P" "Y88b 888        888        888        888   8888b   888 888             8
 Y88b. .d88P 888        888        888        888   888   Y8888 888             888     d8888888888 888  T88b     888         888     
  "Y88888P"  888        888        88888888 8888888 888    Y888 8888888888      888    d88P     888 888   T88b    888         888                                                                                                                                  
     '''
-    print(ascii_art)
-    first_run = False  # Set first_run to False after displaying once
+    print(ascii_art.strip())
 
 def check_for_updates():
     global updates_available  # Make updates_available a global variable
