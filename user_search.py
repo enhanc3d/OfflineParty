@@ -52,11 +52,11 @@ def collect_choices(id_name_service_mapping):
 def get_list_of_user_urls(found_user_data, all_urls):
     for entry in found_user_data:
         artist_id = entry.get("id")
-        if artist_id.isdigit():
-            domain = "kemono.su"
-        else:
-            domain = "coomer.su"
         service = entry.get("service")
+        if (service == "fansly" or service == "onlyfans"):
+            domain = "coomer.su"
+        else:
+            domain = "kemono.su"
         user_url = f"https://{domain}/api/{service}/user/{artist_id}"
         post_pages = get_favorites.get_all_page_urls(domain, service, artist_id, [user_url])
         post_pages.pop(0)

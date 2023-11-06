@@ -4,3 +4,6 @@ Config
 Release
 errors.txt
 user_list.txt
+.venv
+.DS_Store
+TestData
