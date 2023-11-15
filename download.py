@@ -668,6 +668,7 @@ def delete_json_file(filename):
 
 
 if __name__ == "__main__":
+    get_favorites.create_config("Config")
     os.system('cls' if os.name == 'nt' else 'clear')
     settings = load_settings()
     if settings['show_startup_logo']: display_ascii_art()
