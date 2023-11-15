@@ -16,7 +16,7 @@ from user_search import main as user_search
 from json_handling import lookup_and_save_user as save_artist_json
 from discord_download import scrape_discord_server as discord_download
 
-__version__ = "v1.4.3"
+__version__ = "v1.4.4"
 
 updates_available = False  # Variable to store whether updates are available
 first_run = True  # Variable to identify the first run
@@ -77,7 +77,7 @@ def load_settings():
         'post_limit': 0,  # 0 downloads all posts from the artist, it's the default value
         'disk_limit': 0,  # 0 disables the download limit. Expressed in MB
         'download_preference' : 0,
-        'show_startup_logo' : 1
+        'show_startup_logo' : 0
     }
 
     # Check if the directory exists, if not create it

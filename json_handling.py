@@ -63,7 +63,7 @@ def save_to_coomer_favorites(data):
 
 def save_to_kemono_favorites(data):
     """Save or update the provided user data in coomer_favorites.json."""
-    with open("Config/kemono_favorites.json", "r+") as file:
+    with open("Config/kemono_favorites.json", "r+", encoding='utf-8') as file:
         # Load the existing data
         existing_data = json.load(file)
 
