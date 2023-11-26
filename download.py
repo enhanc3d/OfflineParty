@@ -16,7 +16,7 @@ from user_search import main as user_search
 from json_handling import lookup_and_save_user as save_artist_json
 from discord_download import scrape_discord_server as discord_download
 
-__version__ = "v1.4.4"
+__version__ = "v1.4.5"
 
 updates_available = False  # Variable to store whether updates are available
 first_run = True  # Variable to identify the first run
@@ -77,7 +77,36 @@ def load_settings():
         'post_limit': 0,  # 0 downloads all posts from the artist, it's the default value
         'disk_limit': 0,  # 0 disables the download limit. Expressed in MB
         'download_preference' : 0,
-        'show_startup_logo' : 0
+        'minimum_file_size' : 0,
+        'maximum_file_size' : 0,
+        'file_type_to_download' : ['Image', 'GIF', 'Video', 'Compressed', 'PSD', 'Other'],
+        'show_startup_logo' : 0,
+        'create_post_folder': True,
+        # File type extensions
+        'file_type_extensions' : {
+            'Image': [
+                '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.svg', 
+                '.webp', '.raw', '.heif', '.indd', '.ai', '.eps'
+            ],
+            'GIF': [
+                '.gif'
+            ],
+            'Video': [
+                '.mp4', '.avi', '.mov', '.wmv', '.flv', '.mkv', '.webm', 
+                '.m4v', '.mpg', '.mpeg', '.3gp', '.vob', '.swf'
+            ],
+            'Compressed': [
+                '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.xz', '.iso', '.tgz'
+            ],
+            'Audio': [
+                '.mp3', '.wav', '.aac', '.flac', '.ogg', '.m4a', '.wma', 
+                '.alac', '.amr'
+            ],
+            'PSD': [
+                '.psd'
+            ]
+        }
+
     }
 
     # Check if the directory exists, if not create it
@@ -112,6 +141,21 @@ def save_settings(settings):
         yaml.dump(settings, settings_file, default_flow_style=False)
 
 
+def is_file_type_allowed(file_name, allowed_types, file_type_extensions):
+    extension = os.path.splitext(file_name)[1].lower()
+
+    if 'Other' in allowed_types:
+        # If 'Other' is allowed, check that the extension is not in the listed types
+        if not any(extension in ext_list for ext_list in file_type_extensions.values()):
+            return True
+
+    for file_type, extensions in file_type_extensions.items():
+        if file_type in allowed_types and extension in extensions:
+            return True
+
+    return False
+
+
 def get_folder_size(folder_path):
     total_size = 0
     for dirpath, dirnames, filenames in os.walk(folder_path):
@@ -128,7 +172,7 @@ def check_disk_limit():
     disk_limit = settings['disk_limit']  # Fetch disk limit from settings
     creators_folder = os.path.join(settings['stash_path'], 'Creators')
 
-    if disk_limit == 0:
+    if disk_limit == 0 or 0.0:
         return True  # Skip disk limit check if set to 0
 
     if os.path.exists(creators_folder):
@@ -152,7 +196,7 @@ def check_file_size_within_limit(file_size):
     disk_limit = settings['disk_limit']  # Fetch disk limit from settings in MB
     creators_folder = os.path.join(settings['stash_path'], 'Creators')
 
-    if disk_limit == 0:
+    if disk_limit == 0 or 0.0:
         return True  # Skip disk limit check if set to 0
 
     if os.path.exists(creators_folder):
@@ -169,6 +213,16 @@ def settings_menu():
     settings = load_settings()  # Assume this function is defined elsewhere
     original_settings = settings.copy()  # Store the original settings for comparison
     changes_unsaved = False  # Flag to keep track of unsaved changes
+
+    file_types_options = {
+        '1': 'Image',
+        '2': 'GIF',
+        '3': 'Video',
+        '4': 'Compressed',
+        '5' : 'Audio',
+        '6': 'PSD',
+        '7': 'Other'
+    }
 
     # Set the initial description for Discord download preference
     old_preference = settings['download_preference']
@@ -199,23 +253,46 @@ def settings_menu():
         print(menu_title)
         print(separator, "\n")
 
-        def format_setting(label, value):
+        def format_setting(label, value, is_list = False):
             if label == 'download_preference':
                 compare_value = description
                 original_value = original_description
             else:
                 compare_value = settings[label]
                 original_value = original_settings[label]
+            
+            if is_list:  # Additional formatting for lists (e.g., file types)
+                formatted_list = []
+                for item in value:
+                    color = "\033[94m" if item in settings[label] else "\033[0m"
+                    formatted_list.append(f"{color}{item}\033[0m")
+                return ', '.join(formatted_list)
 
             return "{}{}{}".format("\033[91m" if original_value != compare_value else "\033[94m", value, "\033[0m")
+        
+        def format_file_types_setting(current_file_types, original_file_types):
+            if current_file_types == original_file_types:
+                color_code = "\033[94m"  # Blue for unchanged
+            else:
+                color_code = "\033[91m"  # Red for changed
+
+            if len(current_file_types) == len(file_types_options):
+                return f"{color_code}All\033[0m"
+            else:
+                return ', '.join([f"{color_code}{ft}\033[0m" for ft in current_file_types])
+
 
         print(f"1. Change stash path (Current setting: {format_setting('stash_path', settings['stash_path'])})")
         print(f"2. Change post download limit (Current setting: {format_setting('post_limit', settings['post_limit'])})")
         print(f"3. Change disk size limit (Current setting: {format_setting('disk_limit', settings['disk_limit'])} MB)")
         print(f"4. Change Discord post saving preference (Current setting: {format_setting('download_preference', description)})")
-        print(f"5. Toggle OfflineParty logo (Current setting: {format_setting('show_startup_logo', settings['show_startup_logo'])})")
-        print("6. Save and exit")
-        print("7. Discard changes and go back")
+        print(f"5. Change minimum file size to download (Current setting: {format_setting('minimum_file_size', settings['minimum_file_size'])} MB)")
+        print(f"6. Change maximum file size to download (Current setting: {format_setting('maximum_file_size', settings['maximum_file_size'])} MB)")
+        print(f"7. Change file types to download (Current setting: {format_file_types_setting(settings['file_type_to_download'], original_settings['file_type_to_download'])})")
+        print(f"8. Create post folder (Current setting: {format_setting('create_post_folder', 'Enabled' if settings['create_post_folder'] else 'Disabled')})")
+        print(f"9. Show OfflineParty logo (Current setting: {format_setting('show_startup_logo', settings['show_startup_logo'])})")
+        print("10. Save and exit")
+        print("11. Discard changes and go back")
 
         choice = input("\nEnter your choice: ")
 
@@ -240,7 +317,7 @@ def settings_menu():
 
         elif choice == '3':
             try:
-                new_disk_limit = int(input("Enter new disk size limit (Current: {} MB): ".format(settings['disk_limit'])))
+                new_disk_limit = float(input("Enter new disk size limit, use '.'' for decimals (Current: {} MB): ".format(settings['disk_limit'])))
                 settings['disk_limit'] = new_disk_limit
             except ValueError:
                 print("Invalid input. Please enter a number.")
@@ -270,10 +347,63 @@ def settings_menu():
                 time.sleep(2)
         
         elif choice == '5':
-            settings['show_startup_logo'] = not settings['show_startup_logo']
+            try:
+                new_min_size = float(input("\nEnter new minimum file size, 0 for no limit, use '.'' for decimals (MB): "))
+                settings['minimum_file_size'] = new_min_size
+            except ValueError:
+                print("Invalid input. Please enter a number.")
+                time.sleep(2)
 
         elif choice == '6':
-            save_settings(settings)  # Assume this function is defined elsewhere
+            try:
+                new_max_size = float(input("\nEnter new maximum file size, 0 for no limit, use '.'' for decimals (MB): "))
+                settings['maximum_file_size'] = new_max_size
+            except ValueError:
+                print("Invalid input. Please enter a number.")
+                time.sleep(2)
+
+
+        elif choice == '7':
+            while True:
+                os.system('cls' if os.name == 'nt' else 'clear')
+                print("Select file types to download:")
+                for key, value in file_types_options.items():
+                    color = "\033[94m" if value in settings['file_type_to_download'] else ""
+                    print(f"{color}{key}. {value}\033[0m")
+                print("8. Toggle all")
+                print("9. Go back")
+
+                file_type_choice = input("\nEnter your choices (comma-separated, e.g., 1,2,3): ")
+                
+                if file_type_choice == '8':  # Toggle all
+                    if len(settings['file_type_to_download']) == len(file_types_options):
+                        settings['file_type_to_download'].clear()  # Turn all off if all are on
+                    else:
+                        settings['file_type_to_download'] = list(file_types_options.values())  # Turn all on
+                    continue
+
+
+                if file_type_choice == '9':  # Exit submenu
+                    if settings['file_type_to_download']:
+                        break
+                    else:
+                        print("Please select at least one file type.")
+                        time.sleep(2)
+                        continue
+
+                # Process the input to handle extra spaces and invalid entries
+                selected_types = [t.strip() for t in file_type_choice.split(',') if t.strip() in file_types_options]
+                settings['file_type_to_download'] = [file_types_options[t] for t in selected_types]
+
+
+        elif choice == '8':
+            settings['create_post_folder'] = not settings['create_post_folder']
+
+        elif choice == '9':
+            settings['show_startup_logo'] = not settings['show_startup_logo']
+
+        elif choice == '10':
+            save_settings(settings)
             changes_unsaved = False  # Reset flag to False after saving
             original_settings = settings.copy()  # Update original settings to new saved settings
             original_description = description  # Update original description
@@ -281,7 +411,7 @@ def settings_menu():
             time.sleep(2)
             break
 
-        elif choice == '7':
+        elif choice == '11':
             break
         else:
             print("Invalid choice. Please try again.")
@@ -404,9 +534,19 @@ def get_with_retry(url, retries=5, stream=False, timeout=30, delay=30):
 
 
 def download_file(url, folder_name, file_name, artist_url, artist_name):
-    if not check_disk_limit():  # Check disk limit before downloading
+    # Load settings
+    settings = load_settings()
+
+    # Check file type
+    if not is_file_type_allowed(file_name, settings['file_type_to_download'], settings['file_type_extensions']):
+        print(f"Skipping download: {file_name} is not a selected file type.")
+        return False
+
+    # Check if download would exceed disk limit
+    if not check_disk_limit():
         print("Skipping download due to disk limit reached.")
         return False
+
     try:
         folder_path = os.path.join(folder_name, file_name)
         temp_folder_path = os.path.join(folder_name, file_name + ".temp")
@@ -426,10 +566,17 @@ def download_file(url, folder_name, file_name, artist_url, artist_name):
 
         if response and response.status_code == 200:
             total_size_in_bytes = int(response.headers.get('content-length', 0))
-            # Check if this file size would exceed the disk limit
-            if not check_file_size_within_limit(total_size_in_bytes):
-                print(f"Skipping download: {file_name} would exceed disk limit.")
+
+            # Convert settings to bytes for comparison
+            min_size_bytes = settings['minimum_file_size'] * 1024 * 1024
+            max_size_bytes = settings['maximum_file_size'] * 1024 * 1024
+
+            # Check if the file size is within the specified limits (0 means no limit)
+            if (settings['minimum_file_size'] > 0 and total_size_in_bytes < min_size_bytes) or \
+               (settings['maximum_file_size'] > 0 and total_size_in_bytes > max_size_bytes):
+                print(f"Skipping download: {file_name} does not meet size criteria.")
                 return False
+
             progress_bar = tqdm(total=total_size_in_bytes,
                                 unit='iB',
                                 unit_scale=True,
@@ -460,7 +607,6 @@ def download_file(url, folder_name, file_name, artist_url, artist_name):
     except Exception as e:
         print(f"An error occurred while downloading {file_name}: {str(e)}")
         return False  # Indicate download failure
-
 
 
 def run_with_base_url(url_list, data, json_file):
@@ -526,8 +672,12 @@ def run_with_base_url(url_list, data, json_file):
             for post_num, post in enumerate(response_data, start=1):
                 post_id = post.get('id')
                 post_folder_name = get_post_folder_name(post)
-                post_folder_path = os.path.join(platform_folder, sanitize_filename(post_folder_name))
-                os.makedirs(post_folder_path, exist_ok=True)
+                if settings['create_post_folder']:
+                    post_folder_path = os.path.join(platform_folder, sanitize_filename(post_folder_name))
+                    os.makedirs(post_folder_path, exist_ok=True)
+                else:
+                    post_folder_path = platform_folder
+                
 
                 base_url = "/".join(url.split("/")[:3])
 
