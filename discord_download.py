@@ -219,6 +219,20 @@ def scrape_discord_server(server_id):
 
 
 def download_file(url, folder_name, file_name, artist_url, artist_name_or_id, channel):
+    
+    from download import is_file_type_allowed, check_disk_limit, load_settings
+    settings = load_settings()
+
+    # Check file type
+    if not is_file_type_allowed(file_name, settings['file_type_to_download'], settings['file_type_extensions']):
+        print(f"Skipping download: {file_name} is not a selected file type.")
+        return False
+
+    # Check if download would exceed disk limit
+    if not check_disk_limit():
+        print("Skipping download due to disk limit reached.")
+        return False
+
     folder_path = os.path.join(folder_name, file_name)
     temp_folder_path = os.path.join(folder_name, f"{file_name}.temp")
 
@@ -234,6 +248,16 @@ def download_file(url, folder_name, file_name, artist_url, artist_name_or_id, ch
     response = requests.get(url, stream=True)
     if response and response.status_code == 200:
         total_size_in_bytes = int(response.headers.get('content-length', 0))
+                    # Convert settings to bytes for comparison
+        min_size_bytes = settings['minimum_file_size'] * 1024 * 1024
+        max_size_bytes = settings['maximum_file_size'] * 1024 * 1024
+
+        # Check if the file size is within the specified limits (0 means no limit)
+        if (settings['minimum_file_size'] > 0 and total_size_in_bytes < min_size_bytes) or \
+            (settings['maximum_file_size'] > 0 and total_size_in_bytes > max_size_bytes):
+            print(f"Skipping download: {file_name} does not meet size criteria.")
+            return False
+        
         progress_bar = tqdm(total=total_size_in_bytes,
                             unit='iB',
                             unit_scale=True,
