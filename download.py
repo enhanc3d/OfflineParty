@@ -55,7 +55,10 @@ def clear_console(artist_name_id_or_url, channel_name=None):
     
     os.system('cls' if os.name == 'nt' else 'clear')
     
-    separator = '=' * (len(artist_name_id_or_url) + 24)
+    if channel_name is None:
+        separator = '=' * (len(artist_name_id_or_url) + 24)
+    else:
+        separator = '=' * (len(artist_name_id_or_url) + len(channel_name) + 37)
     print(separator)
     
     if channel_name:
@@ -76,7 +79,7 @@ def load_settings():
         'stash_path': './',
         'post_limit': 0,  # 0 downloads all posts from the artist, it's the default value
         'disk_limit': 0,  # 0 disables the download limit. Expressed in MB
-        'download_preference' : 0,
+        'download_preference' : 2,
         'minimum_file_size' : 0,
         'maximum_file_size' : 0,
         'file_type_to_download' : ['Image', 'GIF', 'Video', 'Compressed', 'PSD', 'Other'],
@@ -336,9 +339,7 @@ def settings_menu():
                 new_discord_download_preference = int(input("\nEnter new Discord download preference: "))
                 settings['download_preference'] = new_discord_download_preference
                 # Update the description based on the new setting
-                if new_discord_download_preference == 0:
-                    description = "No preference assigned yet."
-                elif new_discord_download_preference == 1:
+                if new_discord_download_preference == 1:
                     description = "Save files in separate folders for each message"
                 elif new_discord_download_preference == 2:
                     description = "Save all files directly in the channel folder"
@@ -533,7 +534,7 @@ def get_with_retry(url, retries=5, stream=False, timeout=30, delay=30):
                 return None  # Explicitly return None if all retries fail
 
 
-def download_file(url, folder_name, file_name, artist_url, artist_name):
+def download_file(url, folder_name, file_name, artist_url, artist_name,channel=None):
     # Load settings
     settings = load_settings()
 
@@ -599,7 +600,7 @@ def download_file(url, folder_name, file_name, artist_url, artist_name):
                 return False
 
             print(f"Finished downloading: {file_name} from {artist_url}")
-            clear_console(artist_name or artist_url)  # Use artist_name if available, otherwise use artist_url
+            clear_console(artist_name or artist_url,channel)  # Use artist_name if available, otherwise use artist_url
 
             return True  # Indicate download success
         else:
@@ -750,47 +751,79 @@ def run_with_base_url(url_list, data, json_file):
 def save_content_to_txt(folder_name, content, embed, post_url):
     folder_path = os.path.join(folder_name, "content.txt")
     comment_section = ""
+    
+    if not isinstance(post_url, dict):
+        try:
+            # Fetch the HTML content from the post_url
+            response = requests.get(post_url)
+            soup = BeautifulSoup(response.text, 'html.parser')
 
-    try:
-        # Fetch the HTML content from the post_url
-        response = requests.get(post_url)
-        soup = BeautifulSoup(response.text, 'html.parser')
+            # Extract comments
+            comments = soup.find_all('article', class_='comment')
+            comment_list = []
 
-        # Extract comments
-        comments = soup.find_all('article', class_='comment')
-        comment_list = []
+            for comment in comments:
+                user = comment.find('a', class_='comment__name').text
+                message = comment.find('p', class_='comment__message').text
+                timestamp = comment.find('time', class_='timestamp').text
 
-        for comment in comments:
-            user = comment.find('a', class_='comment__name').text
-            message = comment.find('p', class_='comment__message').text
-            timestamp = comment.find('time', class_='timestamp').text
+                formatted_comment = f"{user} - {message} - {timestamp}"
+                comment_list.append(formatted_comment)
 
-            formatted_comment = f"{user} - {message} - {timestamp}"
-            comment_list.append(formatted_comment)
+            # Join comments with line breaks
+            comment_section = '\n'.join(comment_list)
 
-        # Join comments with line breaks
-        comment_section = '\n'.join(comment_list)
+        except Exception as e:
+            print(f"Error fetching comments from {post_url}: {e}")
 
-    except Exception as e:
-        print(f"Error fetching comments from {post_url}: {e}")
-
-    with open(folder_path, 'w', encoding='utf-8') as f:
-        f.write("[POST URL]\n")
-        f.write(f"{post_url}\n\n")
-        f.write("[CONTENT]\n")
-        f.write(html2text.html2text(content))
-        f.write("\n")
-
-        if embed:
-            f.write("[EMBED]\n")
-            for key, value in embed.items():
-                f.write(f"{key.capitalize()}: {value}\n")
+        with open(folder_path, 'a', encoding='utf-8') as f:
+            f.write("[POST URL]\n")
+            f.write(f"{post_url}\n\n")
+            f.write("[CONTENT]\n")
+            f.write(html2text.html2text(content))
             f.write("\n")
 
-        if comment_section:
-            f.write("[COMMENTS]\n")
-            f.write(comment_section)
+            if embed:
+                f.write("[EMBED]\n")
+                for key, value in embed.items():
+                    if key != 'attachments':
+                        f.write(f"{key.capitalize()}: {value}\n")
+                f.write("\n")
+
+            if comment_section:
+                f.write("[COMMENTS]\n")
+                f.write(comment_section)
+                f.write("\n")
+
+    else: #Discord Post
+        post_author = post_url.get('author', {}).get('username', 'Unknown')
+        post_content = post_url.get('content', 'No content available')
+        post_date = post_url.get('published', post_url.get('added', 'Unknown'))
+        server_id = post_url.get('server', 'Unknown')
+        channel_id = post_url.get('channel', 'Unknown')
+
+        # Convert the date to a valid filename format
+        sanitized_post_date = sanitize_filename(post_date)
+
+        # Save post content and embed data to content.txt with date appended
+        folder_path = os.path.join(folder_name, f"content_{sanitized_post_date}.txt")
+        with open(folder_path, 'w', encoding='utf-8') as f:
+            f.write("[POST URL]\n")
+            f.write(f"https://kemono.su/discord/server/{server_id}#{channel_id}\n\n")
+            
+            f.write("[DISCORD POST]\n")
+            f.write(f"Author: {post_author}\n\n")
+            
+            f.write("[CONTENT]\n")
+            f.write(html2text.html2text(post_content))
             f.write("\n")
+
+            if embed:
+                f.write("[EMBEDS]\n")
+                for key, value in embed.items():
+                    if key != 'attachments':
+                        f.write(f"{key.capitalize()}: {value}\n")
+                f.write("\n")
 
 
 def main(option):
