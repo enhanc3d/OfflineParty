@@ -30,11 +30,6 @@ def clear_console(artist_name_or_id, channel_name=None):
 
 
 
-def fetch_creator_data():
-    # Fetching creator data from kemono using the API endpoint
-    return requests.get("https://kemono.su/api/v1/creators.txt").json()
-
-
 def get_artist_name_from_id(artist_id, combined_data):
     """
     Given an artist ID and a combined list of creators, return the artist's name.
@@ -119,38 +114,10 @@ def fetch_discord_posts(channel_id, skip_value):
     return []
 
 
-def save_content_to_txt(folder_name, content, embeds, post):
-    if not isinstance(post, dict):
-        print(f"Unexpected post format: {post}")
-        return
-
-    post_date = post.get('published', post.get('added', 'Unknown'))
-    # Convert the date to a valid filename format
-    sanitized_post_date = sanitize_filename(post_date)
-
-    # Save post content and embed data to content.txt with date appended
-    folder_path = os.path.join(folder_name, f"content_{sanitized_post_date}.txt")
-    with open(folder_path, 'w', encoding='utf-8') as f:
-        f.write("[CONTENT]\n")
-        f.write(content)
-        f.write("\n")
-
-        if embeds:
-            for embed in embeds:
-                f.write("[EMBED]\n")
-                for key, value in embed.items():
-                    # If the value is a dictionary, we need to handle it differently
-                    if isinstance(value, dict):
-                        f.write(f"{key.capitalize()}:\n")
-                        for sub_key, sub_value in value.items():
-                            f.write(f"  {sub_key.capitalize()}: {sub_value}\n")
-                    else:
-                        f.write(f"{key.capitalize()}: {value}\n")
-
-
 def scrape_discord_server(server_id):
+    from download import download_file, save_content_to_txt
     stash_path = read_stash_path_from_yaml()
-    creators_list = fetch_creator_data()
+    creators_list = requests.get("https://kemono.su/api/v1/creators.txt").json()
     artist_name = sanitize_filename(get_artist_name_from_id(server_id, creators_list))
 
     # If artist name is not found, default to server_id
@@ -216,69 +183,3 @@ def scrape_discord_server(server_id):
         save_to_kemono_favorites(artist_data)
     else:
         print(f"Failed to find data for artist with server ID: {server_id}")
-
-
-def download_file(url, folder_name, file_name, artist_url, artist_name_or_id, channel):
-    
-    from download import is_file_type_allowed, check_disk_limit, load_settings
-    settings = load_settings()
-
-    # Check file type
-    if not is_file_type_allowed(file_name, settings['file_type_to_download'], settings['file_type_extensions']):
-        print(f"Skipping download: {file_name} is not a selected file type.")
-        return False
-
-    # Check if download would exceed disk limit
-    if not check_disk_limit():
-        print("Skipping download due to disk limit reached.")
-        return False
-
-    folder_path = os.path.join(folder_name, file_name)
-    temp_folder_path = os.path.join(folder_name, f"{file_name}.temp")
-
-    # If a temporary file exists, remove it to restart the download
-    if os.path.exists(temp_folder_path):
-        os.remove(temp_folder_path)
-
-    # If the final file exists, skip the download
-    if os.path.exists(folder_path):
-        print(f"Skipping download: {file_name} already exists")
-        return
-
-    response = requests.get(url, stream=True)
-    if response and response.status_code == 200:
-        total_size_in_bytes = int(response.headers.get('content-length', 0))
-                    # Convert settings to bytes for comparison
-        min_size_bytes = settings['minimum_file_size'] * 1024 * 1024
-        max_size_bytes = settings['maximum_file_size'] * 1024 * 1024
-
-        # Check if the file size is within the specified limits (0 means no limit)
-        if (settings['minimum_file_size'] > 0 and total_size_in_bytes < min_size_bytes) or \
-            (settings['maximum_file_size'] > 0 and total_size_in_bytes > max_size_bytes):
-            print(f"Skipping download: {file_name} does not meet size criteria.")
-            return False
-        
-        progress_bar = tqdm(total=total_size_in_bytes,
-                            unit='iB',
-                            unit_scale=True,
-                            leave=True,
-                            desc=file_name)
-
-        # Use a temporary file for the download process
-        with open(temp_folder_path, 'wb') as f:
-            for data in response.iter_content(1024):
-                progress_bar.update(len(data))
-                f.write(data)
-
-        progress_bar.close()
-
-        # Rename the temporary file to the final file name
-        os.rename(temp_folder_path, folder_path)
-
-        print(f"Finished downloading: {file_name} from {artist_url}")
-        clear_console(artist_name_or_id, channel)
-
-
-if __name__ == "__main__":
-    SERVER_ID = "485244986854735874"  # Example ID
-    scrape_discord_server(SERVER_ID)
