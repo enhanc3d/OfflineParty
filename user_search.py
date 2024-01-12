@@ -66,8 +66,8 @@ def get_list_of_user_urls(found_user_data, all_urls):
 
 def find_and_return_entries(data_list, input_username):
     # Check if input_username is a URL
-    # Modified regex to account for discord/server URLs
-    url_pattern = r"https://(?P<cookie_domain>\w+\.su)/(?P<service>\w+)/(user|server)/(?P<artist_id>\w+)(\?o=0)?"
+    # Modified regex to account for usernames with periods
+    url_pattern = r"https://(?P<cookie_domain>\w+\.su)/(?P<service>\w+)/(user|server)/(?P<artist_id>[\w.]+)(\?o=0)?"
     match = re.match(url_pattern, input_username)
     
     if match:
@@ -144,8 +144,6 @@ def main(input_username):
     username = matched_entries[0].get('name', '').strip().lower()
     json_file_path = matched_entries[0]
     return all_urls, username, json_file_path
-
-
 
 # Example function call for demonstration purposes
 # main("https://kemono.su/gumroad/user/3452671279253")

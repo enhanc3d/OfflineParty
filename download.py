@@ -16,7 +16,7 @@ from user_search import main as user_search
 from json_handling import lookup_and_save_user as save_artist_json
 from discord_download import scrape_discord_server as discord_download
 
-__version__ = "v1.4.5"
+__version__ = "v1.4.6"
 
 updates_available = False  # Variable to store whether updates are available
 first_run = True  # Variable to identify the first run
