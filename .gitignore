@@ -7,3 +7,4 @@ user_list.txt
 .venv
 .DS_Store
 TestData
+.bat
