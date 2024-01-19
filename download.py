@@ -13,13 +13,9 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from pathvalidate import sanitize_filename
 from user_search import main as user_search
+from update_check import check_for_updates as update_check
 from json_handling import lookup_and_save_user as save_artist_json
 from discord_download import scrape_discord_server as discord_download
-
-__version__ = "v1.4.6"
-
-updates_available = False  # Variable to store whether updates are available
-first_run = True  # Variable to identify the first run
 
 def display_ascii_art():
     ascii_art = '''
@@ -34,19 +30,6 @@ Y88b. .d88P 888        888        888        888   888   Y8888 888             8
     '''
     print(ascii_art.strip())
     time.sleep(1)
-
-
-def check_for_updates():
-    global updates_available  # Make updates_available a global variable
-    try:
-        url = "https://api.github.com/repos/2000GHz/OfflineParty/releases/latest"
-        response = requests.get(url)
-        latest_version = response.json()['tag_name']
-        
-        if latest_version != __version__:
-            updates_available = True  # Set updates_available to True if updates are found
-    except Exception as e:
-        print(f"Could not check for updates: {e}")
 
 
 def clear_console(artist_name_id_or_url, channel_name=None):
@@ -855,7 +838,7 @@ if __name__ == "__main__":
     os.system('cls' if os.name == 'nt' else 'clear')
     settings = load_settings()
     if settings['show_startup_logo']: display_ascii_art()
-    check_for_updates()
+    updates_available = update_check()
     parser = argparse.ArgumentParser(description="Download data from websites.")
     group = parser.add_mutually_exclusive_group()  # Removed required=True
     group.add_argument('-k', '--kemono', action='store_true', help="Download data from Kemono")
@@ -867,7 +850,6 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--reset', action='store_true', help="Reset JSON file for selected flag")
 
     args = parser.parse_args()
-
 
     if not any(vars(args).values()):  # Check if any arguments were provided
         while True:
