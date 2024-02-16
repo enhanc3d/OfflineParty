@@ -498,7 +498,7 @@ def get_post_folder_name(post):
 
     # If there's a date, append it to the title
     if date:
-        return sanitize_filename(f"{title}_{date}")
+        return sanitize_filename(f"{date}_{title}")
     else:
         return sanitize_filename(title)
 
@@ -677,7 +677,6 @@ def run_with_base_url(url_list, data, json_file):
                     os.makedirs(post_folder_path, exist_ok=True)
                 else:
                     post_folder_path = platform_folder
-                
 
                 base_url = "/".join(url.split("/")[:3])
 
@@ -699,7 +698,7 @@ def run_with_base_url(url_list, data, json_file):
                     if attachment_url and attachment_name:
                         response = download_file(attachment_url, post_folder_path, attachment_name, url, artist_name)
                         # Pass artist_name to download_file
-                        if response == False:  # Check if download was unsuccessful
+                        if response is False:  # Check if download was unsuccessful
                             all_downloads_successful = False  # Set the flag to false
 
                 file_info = post.get('file')
@@ -708,7 +707,7 @@ def run_with_base_url(url_list, data, json_file):
                     file_name = sanitize_attachment_name(file_info['name'])
                     if file_url and file_name:
                         response = download_file(file_url, post_folder_path, file_name, url, artist_name)
-                        if response == False:  # Check if download was unsuccessful
+                        if response is False:  # Check if download was unsuccessful
                             all_downloads_successful = False  # Set the flag to false
 
                 content = post.get('content', '')

@@ -10,7 +10,7 @@ fi
 
 # Install packages from requirements.txt
 echo "Installing packages from requirements.txt..."
-python3 -m pip install -r requirements.txt
+pip3 install -r requirements.txt
 
 echo "Done! Press any key to exit."
 read -n 1 -s -r
