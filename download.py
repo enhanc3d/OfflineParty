@@ -39,7 +39,7 @@ Y88b. .d88P 888        888        888        888   888   Y8888 888             8
 def check_for_updates():
     global updates_available  # Make updates_available a global variable
     try:
-        url = "https://api.github.com/repos/2000GHz/OfflineParty/releases/latest"
+        url = "https://api.github.com/repos/enhanc3d/OfflineParty/releases/latest"
         response = requests.get(url)
         latest_version = response.json()['tag_name']
         
@@ -886,7 +886,7 @@ if __name__ == "__main__":
                 settings_menu()
             elif choice == '7':
                 if updates_available:
-                    webbrowser.open("https://github.com/2000GHz/OfflineParty/releases/latest")
+                    webbrowser.open("https://github.com/enhanc3d/OfflineParty/releases/latest")
                 else:
                     print("Exiting...")
                     break
